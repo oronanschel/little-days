@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createLivingRoom, revert, serialize, sit, transform, validate, worldPosition, type OpResult, type World } from '../world';
-import { applyDrop, buildDropTargets, DragGesture } from './index';
+import { applyDrop, buildDropTargets, DragGesture, seatAtPointer } from './index';
 
 function next(result: OpResult): World {
   if (!result.ok) throw new Error(result.reason);
@@ -9,6 +9,36 @@ function next(result: OpResult): World {
 }
 
 describe('world drop adapter', () => {
+  it('accepts a pointer anywhere over the sofa back, cushions or arms', () => {
+    const world = createLivingRoom();
+    for (const point of [{ x: 640, y: 420 }, { x: 800, y: 560 }, { x: 1060, y: 650 }]) {
+      expect(seatAtPointer(world, 'kid', point)?.kind).toBe('seat');
+      expect(seatAtPointer(world, 'grown-up', point)?.kind).toBe('seat');
+    }
+  });
+
+  it('snaps to another free slot when the pointer is over an occupied seat', () => {
+    const world = next(sit(createLivingRoom(), 'grown-up', 'sofa', { x: 640, y: 610 }));
+    expect(seatAtPointer(world, 'kid', { x: 640, y: 480 })?.slot).toBe(1);
+    expect(seatAtPointer(world, 'grown-up', { x: 640, y: 480 })?.slot).toBe(0);
+  });
+
+  it('leaves intentional floor drops and props outside the seat catchment', () => {
+    const world = createLivingRoom();
+    expect(seatAtPointer(world, 'kid', { x: 800, y: 800 })).toBeUndefined();
+    expect(seatAtPointer(world, 'snack', { x: 800, y: 500 })).toBeUndefined();
+  });
+
+  it('gives a snack to a seated person when dropped over their tummy, ahead of the sofa', () => {
+    const world = next(sit(createLivingRoom(), 'grown-up', 'sofa', { x: 800, y: 610 }));
+    const result = next(applyDrop(world, 'snack', { x: 800, y: 580 }, {
+      characterBounds: (id) => id === 'grown-up'
+        ? { x: 740, y: 350, width: 120, height: 360 }
+        : undefined,
+    }));
+    expect(result.entities.snack.attachment).toEqual({ kind: 'held', by: 'grown-up' });
+  });
+
   it('seats near an edge and keeps a held snack through a boat adventure and return', () => {
     let world = createLivingRoom();
     world = next(applyDrop(world, 'snack', { x: 470, y: 630 }));

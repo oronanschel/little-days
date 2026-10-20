@@ -98,6 +98,46 @@ try {
       const world=await page.evaluate(()=>window.littleDays.play.current);
       assert.ok(Math.abs(world.entities.kid.pos.x-1000)<2);assert.equal(world.entities['grown-up'].pos.x,420);
     });
+    for (const id of ['grown-up', 'kid']) {
+      for (const grab of [0.8, 0.45, 0.08]) {
+        for (const releaseY of [480, 600]) {
+          await check(`${id}: grab at ${grab}, release on sofa at y=${releaseY}`, async () => {
+            const points = await page.evaluate(({ id, grab, releaseY }) => {
+              const { renderer } = window.littleDays;
+              const view = renderer.viewOf(id);
+              const start = view.root.toGlobal({ x: 0, y: -view.geometry.height * grab });
+              const end = renderer.stage.toGlobal({ x: id === 'grown-up' ? 640 : 960, y: releaseY });
+              return { start: { x: start.x, y: start.y }, end: { x: end.x, y: end.y } };
+            }, { id, grab, releaseY });
+            await page.mouse.move(points.start.x, points.start.y);
+            await page.mouse.down();
+            await page.mouse.move(points.end.x, points.end.y, { steps: 8 });
+            await page.mouse.up();
+            const attachment = await page.evaluate(id => window.littleDays.play.current.entities[id].attachment, id);
+            assert.equal(attachment?.kind, 'seated');
+            assert.equal(attachment?.on, 'sofa');
+          });
+        }
+      }
+    }
+    await check('a snack dropped on a seated tummy is carried, not left on the sofa', async () => {
+      const feet = await page.evaluate(() => {
+        const g = window.littleDays.renderer.viewOf('grown-up').geometry;
+        return { x: 800, y: 610 + g.height - g.hipY };
+      });
+      await drag('grown-up', feet);
+      const tummy = await page.evaluate(() => {
+        const {renderer} = window.littleDays;
+        const view = renderer.viewOf('grown-up');
+        return renderer.toWorld(view.root.toGlobal({x:0, y:-view.geometry.height * 0.45 + view.body.y}));
+      });
+      await drag('snack', tummy);
+      const attachment = await page.evaluate(() => window.littleDays.play.current.entities.snack.attachment);
+      assert.equal(attachment?.kind, 'held');
+      assert.equal(attachment?.by, 'grown-up');
+      await drag('grown-up', {x:1100, y:900});
+      assert.equal(await page.evaluate(() => window.littleDays.play.current.entities.snack.attachment?.by), 'grown-up');
+    });
     await check('lost pointer capture restores the uncommitted scene', async () => {
       const before = await page.evaluate(() => JSON.stringify(window.littleDays.play.current));
       const {start, end} = await geometry('kid', {x:1000, y:900});
@@ -128,6 +168,7 @@ try {
     await browser.close();browser=null;
   }
   await writeFile('diagnostics/input/results.json', JSON.stringify(results, null, 2));
-  console.log(JSON.stringify(results,null,2));
+  console.log(`${results.filter(result => result.pass).length}/${results.length} browser checks passed.`);
+  for (const result of results.filter(result => !result.pass)) console.error(JSON.stringify(result));
   if(results.some(r=>!r.pass)) process.exitCode=1;
 } finally {if(browser)await browser.close();await server.close();}
