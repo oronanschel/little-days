@@ -63,7 +63,9 @@ The adapter exports provisional `DEFAULT_SURFACES` and `DEFAULT_FLOOR` matching
 the slice's 1600×1000 layout. `options.surfaceBounds` overrides local rectangles
 by furniture type; `options.floor` overrides legal free anchor bounds, and
 `options.padding` tunes touch tolerance. Set the surface rectangles to match the
-art. A tolerance drop is clamped onto the actual surface before attaching a prop,
+art. Pass `options.anchorOf(id, 'hand' | 'head')` to use the renderer's world-space
+pose anchors for seated characters. Returning `undefined` uses the catalog offset.
+A tolerance drop is clamped onto the actual surface before attaching a prop,
 so it does not float off the edge. The same data and rules apply at sea.
 
 `toScenePoint` supports a browser client rectangle and the corresponding logical

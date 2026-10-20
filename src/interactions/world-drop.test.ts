@@ -49,8 +49,8 @@ describe('world drop adapter', () => {
   });
 
   it('packs a snack on the sofa and clamps a tolerance drop to the actual surface', () => {
-    const world = next(applyDrop(createLivingRoom(), 'snack', { x: 550, y: 590 }));
-    expect(world.entities.snack.attachment).toEqual({ kind: 'resting', on: 'sofa', offset: { x: -235, y: -110 } });
+    const world = next(applyDrop(createLivingRoom(), 'snack', { x: 540, y: 590 }));
+    expect(world.entities.snack.attachment).toEqual({ kind: 'resting', on: 'sofa', offset: { x: -248, y: -110 } });
     expect(buildDropTargets(world, 'snack').some(target => target.entityId === 'snack')).toBe(false);
   });
 
@@ -97,5 +97,18 @@ describe('world drop adapter', () => {
   it('refuses a missing dragged entity without changing the world', () => {
     expect(applyDrop(createLivingRoom(), 'missing', { x: 0, y: 0 }))
       .toEqual({ ok: false, reason: 'unknown-entity' });
+  });
+
+  it('uses the rendered hand and head anchors when a seated pose changes their offsets', () => {
+    const seated = next(sit(createLivingRoom(), 'kid', 'sofa', { x: 640, y: 610 }));
+    const options = {
+      anchorOf: (id: string, anchor: 'hand' | 'head') => id === 'kid'
+        ? (anchor === 'hand' ? { x: 700, y: 520 } : { x: 640, y: 400 })
+        : undefined,
+    };
+    let world = next(applyDrop(seated, 'snack', { x: 700, y: 520 }, options));
+    expect(world.entities.snack.attachment).toEqual({ kind: 'held', by: 'kid' });
+    world = next(applyDrop(world, 'captain-hat', { x: 640, y: 400 }, options));
+    expect(world.entities['captain-hat'].attachment).toEqual({ kind: 'worn', by: 'kid' });
   });
 });

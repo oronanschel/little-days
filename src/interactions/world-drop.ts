@@ -17,12 +17,14 @@ export interface WorldDropOptions {
   padding?: number;
   /** Local bounds relative to each furniture type's feet/base anchor. */
   surfaceBounds?: Readonly<Record<string, Rect>>;
+  /** Renderer pose anchors in world units, especially for seated characters. */
+  anchorOf?: (entityId: string, anchor: 'hand' | 'head') => Point | undefined;
 }
 
 export const DEFAULT_FLOOR: Readonly<Rect> = { x: 60, y: 600, width: 1480, height: 350 };
 export const DEFAULT_SURFACES: Readonly<Record<string, Rect>> = {
-  sofa: { x: -235, y: -145, width: 470, height: 100 },
-  'side-table': { x: -100, y: -170, width: 200, height: 45 },
+  sofa: { x: -248, y: -140, width: 496, height: 40 },
+  'side-table': { x: -88, y: -150, width: 176, height: 30 },
 };
 
 const centered = (point: Point, width: number, height: number): Rect => ({
@@ -54,11 +56,15 @@ export function buildDropTargets(world: World, draggedId: string, options: World
     }
     if (source.carriable && def.character && def.handOffset
       && !children.some(child => child.attachment?.kind === 'held')) {
-      add('hand', centered({ x: base.x + def.handOffset.x, y: base.y + def.handOffset.y }, 100, 100), 2);
+      const anchor = options.anchorOf?.(entity.id, 'hand')
+        ?? { x: base.x + def.handOffset.x, y: base.y + def.handOffset.y };
+      add('hand', centered(anchor, 100, 100), 2);
     }
     if (source.wearable && def.character && def.headOffset
       && !children.some(child => child.attachment?.kind === 'worn')) {
-      add('head', centered({ x: base.x + def.headOffset.x, y: base.y + def.headOffset.y }, 120, 90), 3);
+      const anchor = options.anchorOf?.(entity.id, 'head')
+        ?? { x: base.x + def.headOffset.x, y: base.y + def.headOffset.y };
+      add('head', centered(anchor, 120, 90), 3);
     }
     if (source.carriable && def.surface) {
       const local = options.surfaceBounds?.[entity.type] ?? DEFAULT_SURFACES[entity.type];
