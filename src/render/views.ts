@@ -14,6 +14,7 @@ import {
   boatSailRaised,
   captainHat,
   contactShadow,
+  floatRing,
   ripple,
   sideTable,
   snack,
@@ -260,6 +261,9 @@ export class PropView implements EntityView {
   readonly extraLayers: Container[] = [];
   readonly sprite: Sprite;
   private readonly shadow: ShadowedSprite;
+  private readonly ring: Sprite;
+  private onFloor = true;
+  private ground: Ground = 'floor';
 
   constructor(
     readonly id: string,
@@ -268,7 +272,10 @@ export class PropView implements EntityView {
   ) {
     this.shadow = new ShadowedSprite(art.width * 0.9);
     this.sprite = artSprite(art);
-    this.root.addChild(this.shadow.shadow, this.sprite);
+    this.ring = artSprite(floatRing);
+    this.ring.scale.set(Math.max(0.5, (art.width * 1.15) / floatRing.width));
+    this.ring.visible = false;
+    this.root.addChild(this.shadow.shadow, this.sprite, this.ring);
     this.root.eventMode = 'static';
     this.root.hitArea = paddedHitArea(art, draggable ? HIT_PADDING + 12 : 0);
     if (draggable) this.root.cursor = 'grab';
@@ -276,11 +283,20 @@ export class PropView implements EntityView {
 
   /** Items on the floor cast a shadow; items held, worn or resting on furniture don't. */
   setOnFloor(onFloor: boolean): void {
+    this.onFloor = onFloor;
     this.shadow.shadow.visible = onFloor;
+    this.updateRing();
   }
 
   setGround(ground: Ground): void {
+    this.ground = ground;
     this.shadow.setGround(ground);
+    this.updateRing();
+  }
+
+  /** Out in the water, a prop bobs in a swim ring; on sand or carried, it doesn't. */
+  private updateRing(): void {
+    this.ring.visible = this.onFloor && this.ground === 'sea';
   }
 
   destroy(): void {

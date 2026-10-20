@@ -19,19 +19,46 @@ export const SOFA = {
 
 const SOFA_ORANGE = '#ef7d4f';
 
+const SOFA_DEFS = `
+  <defs>
+    <linearGradient id="sv" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7966a"/><stop offset="1" stop-color="#e2683d"/>
+    </linearGradient>
+    <linearGradient id="cush" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbb08a"/><stop offset="0.7" stop-color="#f4905f"/><stop offset="1" stop-color="#e9794a"/>
+    </linearGradient>
+    <linearGradient id="seat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fba57c"/><stop offset="1" stop-color="#ef8352"/>
+    </linearGradient>
+    <linearGradient id="skirt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e7744a"/><stop offset="1" stop-color="#c9572f"/>
+    </linearGradient>
+    <linearGradient id="arm" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f7966a"/><stop offset="0.6" stop-color="${SOFA_ORANGE}"/><stop offset="1" stop-color="#d9603a"/>
+    </linearGradient>
+  </defs>`;
+
+const cushion = (x: number) => `
+  <rect x="${x}" y="40" width="134" height="128" rx="32" fill="url(#cush)" ${OUTLINE}/>
+  <path d="M${x + 18} 58 Q${x + 67} 46 ${x + 116} 58" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.35" fill="none"/>
+  <circle cx="${x + 67}" cy="104" r="5" fill="#d9603a"/>`;
+
 export const sofaBack: ArtPiece = piece(
   'sofa-back',
   SW,
   SH,
-  `
-  <rect x="44" y="18" width="472" height="170" rx="44" fill="${SOFA_ORANGE}" ${OUTLINE}/>
-  <rect x="74" y="44" width="130" height="122" rx="30" fill="#f59a6b"/>
-  <rect x="215" y="44" width="130" height="122" rx="30" fill="#f59a6b"/>
-  <rect x="356" y="44" width="130" height="122" rx="30" fill="#f59a6b"/>
-  <rect x="96" y="70" width="70" height="56" rx="18" fill="#fbe7c8" transform="rotate(-8 131 98)"/>
-  <rect x="396" y="70" width="70" height="56" rx="18" fill="#9fd3c7" transform="rotate(8 431 98)"/>
-  <rect x="32" y="160" width="496" height="58" rx="24" fill="#f28a5c" ${OUTLINE}/>
-  <rect x="32" y="200" width="496" height="66" rx="20" fill="#e06d42" ${OUTLINE}/>
+  `${SOFA_DEFS}
+  <rect x="40" y="14" width="480" height="178" rx="48" fill="url(#sv)" ${OUTLINE}/>
+  <path d="M70 26 Q280 6 490 26" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.3" fill="none"/>
+  ${cushion(70)}${cushion(213)}${cushion(356)}
+  <rect x="96" y="70" width="72" height="58" rx="18" fill="#fbe7c8" ${OUTLINE} transform="rotate(-9 132 99)"/>
+  <path d="M106 84 h52 M106 98 h52 M106 112 h52" stroke="#f2c45c" stroke-width="5" transform="rotate(-9 132 99)"/>
+  <rect x="394" y="70" width="72" height="58" rx="18" fill="#9fd3c7" ${OUTLINE} transform="rotate(9 430 99)"/>
+  <circle cx="430" cy="99" r="12" fill="#ffffff" opacity="0.6" transform="rotate(9 430 99)"/>
+  <rect x="30" y="156" width="500" height="62" rx="26" fill="url(#seat)" ${OUTLINE}/>
+  <path d="M190 160 v52 M370 160 v52" stroke="#d9603a" stroke-width="3" opacity="0.5"/>
+  <rect x="30" y="198" width="500" height="70" rx="22" fill="url(#skirt)" ${OUTLINE}/>
+  <path d="M44 210 H516" stroke="#f7a37c" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
 `,
 );
 
@@ -39,13 +66,14 @@ export const sofaFront: ArtPiece = piece(
   'sofa-front',
   SW,
   SH,
-  `
-  <rect x="62" y="262" width="22" height="34" rx="6" fill="#8a5a3a"/>
-  <rect x="476" y="262" width="22" height="34" rx="6" fill="#8a5a3a"/>
-  <rect x="0" y="96" width="84" height="172" rx="38" fill="${SOFA_ORANGE}" ${OUTLINE}/>
-  <rect x="476" y="96" width="84" height="172" rx="38" fill="${SOFA_ORANGE}" ${OUTLINE}/>
-  <ellipse cx="42" cy="112" rx="34" ry="14" fill="#f59a6b"/>
-  <ellipse cx="518" cy="112" rx="34" ry="14" fill="#f59a6b"/>
+  `${SOFA_DEFS}
+  <rect x="60" y="260" width="24" height="36" rx="7" fill="#7a4a2c"/>
+  <rect x="476" y="260" width="24" height="36" rx="7" fill="#7a4a2c"/>
+  <rect x="0" y="92" width="86" height="178" rx="40" fill="url(#arm)" ${OUTLINE}/>
+  <rect x="474" y="92" width="86" height="178" rx="40" fill="url(#arm)" ${OUTLINE}/>
+  <ellipse cx="43" cy="110" rx="36" ry="15" fill="#fbb08a"/>
+  <ellipse cx="517" cy="110" rx="36" ry="15" fill="#fbb08a"/>
+  <path d="M14 240 Q43 252 72 240 M488 240 Q517 252 546 240" stroke="#c9572f" stroke-width="4" fill="none" opacity="0.6"/>
 `,
 );
 
@@ -153,7 +181,10 @@ export const contactShadow: ArtPiece = piece(
   'contact-shadow',
   200,
   40,
-  `<ellipse cx="100" cy="20" rx="96" ry="16" fill="#6b3f2a" opacity="0.18"/>`,
+  `<defs><radialGradient id="cs" cx="0.5" cy="0.5" r="0.5">
+     <stop offset="0" stop-color="#5a3018" stop-opacity="0.38"/><stop offset="0.7" stop-color="#5a3018" stop-opacity="0.14"/><stop offset="1" stop-color="#5a3018" stop-opacity="0"/>
+   </radialGradient></defs>
+   <ellipse cx="100" cy="20" rx="98" ry="18" fill="url(#cs)"/>`,
   100,
   20,
 );
@@ -169,4 +200,21 @@ export const ripple: ArtPiece = piece(
 `,
   100,
   20,
+);
+
+/** A swim ring: at sea, props left out in the water bob in one instead of standing in the waves. */
+export const floatRing: ArtPiece = piece(
+  'float-ring',
+  200,
+  64,
+  `
+  <ellipse cx="100" cy="34" rx="96" ry="26" fill="#ffffff" ${OUTLINE}/>
+  <path d="M4 34 A96 26 0 0 1 40 13 L52 24 A64 14 0 0 0 36 34 Z" fill="#e85d5d"/>
+  <path d="M160 13 A96 26 0 0 1 196 34 L164 34 A64 14 0 0 0 148 24 Z" fill="#e85d5d"/>
+  <path d="M60 58 A96 26 0 0 0 140 58 L130 46 A64 14 0 0 1 70 46 Z" fill="#e85d5d"/>
+  <ellipse cx="100" cy="34" rx="64" ry="13" fill="#3fa3c9"/>
+  <path d="M30 22 Q100 8 170 22" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.6" stroke-linecap="round"/>
+`,
+  100,
+  40,
 );
