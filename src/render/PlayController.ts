@@ -4,6 +4,7 @@ import {
   buildDropTargets,
   DragGesture,
   resolveDrop,
+  seatAtPointer,
   type Point,
   type WorldDropOptions,
 } from '../interactions';
@@ -74,6 +75,7 @@ export class PlayController {
   private options(): WorldDropOptions {
     return {
       anchorOf: (id, which) => this.renderer.anchorOf(id, which) ?? undefined,
+      characterBounds: (id) => this.renderer.boundsOf(id) ?? undefined,
     };
   }
 
@@ -110,7 +112,8 @@ export class PlayController {
   }
 
   private up(e: FederatedPointerEvent): void {
-    const end = this.gesture.end(e.pointerId, this.renderer.toWorld(e.global));
+    const pointer = this.renderer.toWorld(e.global);
+    const end = this.gesture.end(e.pointerId, pointer);
     if (!end) return;
     this.releasePointer();
     this.renderer.setDragPreview(null);
@@ -118,12 +121,17 @@ export class PlayController {
       this.onTap?.(end.entityId);
       return;
     }
-    this.commit(this.drop(end.entityId, end.position));
+    this.commit(this.drop(end.entityId, end.position, pointer));
   }
 
-  private drop(id: EntityId, feet: Point): OpResult {
+  private drop(id: EntityId, feet: Point, pointer: Point): OpResult {
     const view = this.renderer.viewOf(id);
     if (view instanceof CharacterView) {
+      const seat = seatAtPointer(this.world, id, pointer, this.options());
+      if (seat) {
+        const b = seat.bounds;
+        return sit(this.world, id, seat.entityId, { x: b.x + b.width / 2, y: b.y + b.height / 2 });
+      }
       // Seats are matched at the hips: where the child sees the character's bottom land.
       const g = view.geometry;
       const hips = { x: feet.x, y: feet.y - (g.height - g.hipY) };
