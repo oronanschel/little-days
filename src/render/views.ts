@@ -213,6 +213,19 @@ export class SofaView implements EntityView {
     this.shadow.shadow.visible = !isBoat;
   }
 
+  /**
+   * Show the sail partway raised (0 furled .. 1 full) for the raise/furl animation.
+   * The raised sail unrolls downward from its top edge at SAIL_TOP.
+   */
+  setSailAmount(amount: number): void {
+    if (!this.boatBack.visible) return;
+    const p = Math.min(1, Math.max(0, amount));
+    this.sailRaised.visible = p > 0.02;
+    this.sailFurled.visible = p < 0.98;
+    this.sailRaised.scale.y = Math.max(0.02, p);
+    this.sailRaised.position.y = SAIL_TOP * (1 - this.sailRaised.scale.y);
+  }
+
   setGround(ground: Ground): void {
     this.shadow.setGround(ground);
   }
@@ -222,6 +235,9 @@ export class SofaView implements EntityView {
     this.front.destroy({ children: true });
   }
 }
+
+/** Top edge of the raised sail, relative to the sofa base (world units). */
+const SAIL_TOP = -570;
 
 // --- Simple props ---------------------------------------------------------------
 
