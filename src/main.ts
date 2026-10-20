@@ -3,6 +3,7 @@ import { createLivingRoom, load, save } from './world';
 import { PlayController } from './render/PlayController';
 import { SceneRenderer } from './render/SceneRenderer';
 import { CharacterView } from './render/views';
+import { attachBoat } from './boat/attach';
 
 async function main() {
   const app = new Application();
@@ -25,8 +26,12 @@ async function main() {
     if (store) save(store, w);
   };
 
+  // Boat adventure (#8): the invitation sparkle, the way home and the boat interactions.
+  const boat = attachBoat(app, renderer, play);
+
   // A tap on a character gets a friendly wave: feedback without changing the scene.
   play.onTap = (id) => {
+    if (boat.tapEntity(id)) return;
     const view = renderer.viewOf(id);
     if (!(view instanceof CharacterView)) return;
     const before = view.currentArmPose;
@@ -38,7 +43,7 @@ async function main() {
   };
 
   // Handy for development and browser checks; not part of the child-facing UI.
-  (window as unknown as { littleDays: unknown }).littleDays = { app, renderer, play };
+  (window as unknown as { littleDays: unknown }).littleDays = { app, renderer, play, boat: boat.boat };
 }
 
 function safeStorage(): Storage | null {
