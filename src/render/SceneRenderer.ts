@@ -1,7 +1,7 @@
 import { frameFor, union, visibleRect, ease, type Frame, type Rect } from './layout';
 import { Application, Container, Graphics, Rectangle, TilingSprite, type FederatedPointerEvent, type PointData } from 'pixi.js';
 import { characterParts, LOOKS, type Expression } from '../art/characters';
-import { BACKDROP_WIDTH, FLOOR_COLOR, HOUSE_SHELL_BOTTOM, HOUSE_SHELL_TOP, livingRoom, sea, SEA_COLOR, seaShore, seaWater, SHORE_Y, SKY_COLOR, WALL_COLOR } from '../art/backdrops';
+import { BACKDROP_WIDTH, FLOOR_COLOR, gardenBelow, houseAbove, HOUSE_SHELL_BOTTOM, HOUSE_SHELL_TOP, livingRoom, sea, SEA_COLOR, seaShore, seaWater, SHORE_Y, SKY_COLOR, WALL_COLOR } from '../art/backdrops';
 import * as props from '../art/props';
 import type { ArtPiece } from '../art/svg';
 import { worldPosition, type Entity, type EntityId, type World, type WorldEvent } from '../world';
@@ -21,7 +21,7 @@ const REACTION_MS = 1600;
 const FADE_MS = 450;
 
 function allArt(): ArtPiece[] {
-  const pieces: ArtPiece[] = [livingRoom, sea, seaWater, seaShore];
+  const pieces: ArtPiece[] = [livingRoom, sea, seaWater, seaShore, houseAbove, gardenBelow];
   for (const v of Object.values(props)) if (v && typeof v === 'object' && 'svg' in v) pieces.push(v as ArtPiece);
   for (const look of LOOKS) {
     const p = characterParts(look);
@@ -84,6 +84,12 @@ export class SceneRenderer {
       new Graphics().rect(-4000, -4000, 9600, 4000).fill(HOUSE_SHELL_TOP).rect(-4000, STAGE_HEIGHT - 2, 9600, 4000).fill(HOUSE_SHELL_BOTTOM),
       artSprite(livingRoom),
     );
+    // Tall screens see the rest of the dollhouse: an upstairs room above, the garden below.
+    const above = artSprite(houseAbove);
+    const below = artSprite(gardenBelow);
+    below.y = STAGE_HEIGHT;
+    this.livingLayer.addChildAt(above, 2);
+    this.livingLayer.addChildAt(below, 3);
     // The water tiles far beyond the stage so it also fills letterbox margins while scrolling.
     this.water = new TilingSprite({ texture: textureOf(seaWater), width: 9600, height: STAGE_HEIGHT });
     this.water.position.set(-4000, 0);
