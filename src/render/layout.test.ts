@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CORE, STAGE, frameFor, visibleRect, type Rect } from './layout';
+import { CORE, CORE_ROOM, STAGE, frameFor, visibleRect, type Rect } from './layout';
 
 const contains = (outer: Rect, inner: Rect) =>
   inner.x >= outer.x - 1e-6 &&
@@ -39,6 +39,16 @@ describe('frameFor', () => {
       expect(contains(v, hat)).toBe(true);
       expect(contains(v, CORE)).toBe(true);
     }
+  });
+
+  it('zooms further in the living room, where only the sofa and the family must show', () => {
+    const family: Rect = { x: 350, y: 560, width: 920, height: 380 };
+    const room = frameFor(768, 1024, family, CORE_ROOM);
+    const sea = frameFor(768, 1024, family, CORE);
+    expect(room.scale).toBeGreaterThan(sea.scale * 1.1);
+    const v = visibleRect(room, 768, 1024);
+    expect(contains(v, family)).toBe(true);
+    expect(contains(v, CORE_ROOM)).toBe(true);
   });
 
   it('stays on the stage when the screen is narrower than it', () => {
