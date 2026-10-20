@@ -52,3 +52,8 @@ Matched screenshots for the owner-reported failures are in
 [`assets/seating-fix/`](assets/seating-fix/): ordinary sofa-back releases before and
 after the fix, at both layouts, and a tummy drop before and after carrying is fixed.
 These images keep the same art and layout to isolate the interaction change.
+
+Wallpaper releases outside the sofa catchment also need a safe fallback: floor
+clamping must not hide a free person or prop behind the sofa. The resolver moves
+such floor points forward of the furniture. The suite verifies that the child
+remains free and can be picked up again; clear floor beside the sofa is unchanged.

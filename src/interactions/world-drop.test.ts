@@ -39,6 +39,17 @@ describe('world drop adapter', () => {
     expect(result.entities.snack.attachment).toEqual({ kind: 'held', by: 'grown-up' });
   });
 
+  it('keeps wallpaper releases on reachable floor in front of the sofa', () => {
+    const world = createLivingRoom();
+    for (const id of ['kid', 'captain-hat']) {
+      const moved = next(applyDrop(world, id, { x: 800, y: 300 }));
+      expect(moved.entities[id].attachment).toBeNull();
+      expect(moved.entities[id].pos).toEqual({ x: 800, y: 780 });
+    }
+    expect(next(applyDrop(world, 'kid', { x: 300, y: 300 })).entities.kid.pos)
+      .toEqual({ x: 300, y: 600 });
+  });
+
   it('seats near an edge and keeps a held snack through a boat adventure and return', () => {
     let world = createLivingRoom();
     world = next(applyDrop(world, 'snack', { x: 470, y: 630 }));
