@@ -138,6 +138,24 @@ try {
       await drag('grown-up', {x:1100, y:900});
       assert.equal(await page.evaluate(() => window.littleDays.play.current.entities.snack.attachment?.by), 'grown-up');
     });
+    await check('a wallpaper release leaves the child reachable in front of the sofa', async () => {
+      const points = await page.evaluate(() => {
+        const {renderer} = window.littleDays;
+        const view = renderer.viewOf('kid');
+        const start = view.root.toGlobal({x:0, y:-view.geometry.height * 0.45});
+        const end = renderer.stage.toGlobal({x:800, y:300});
+        return {start:{x:start.x,y:start.y},end:{x:end.x,y:end.y}};
+      });
+      await page.mouse.move(points.start.x, points.start.y);
+      await page.mouse.down();
+      await page.mouse.move(points.end.x, points.end.y, {steps:8});
+      await page.mouse.up();
+      const child = await page.evaluate(() => window.littleDays.play.current.entities.kid);
+      assert.equal(child.attachment, null);
+      assert.ok(child.pos.y > 700, 'Free placement must be in front of sofa depth');
+      await drag('kid', {x:1100,y:900});
+      assert.ok(Math.abs(await page.evaluate(() => window.littleDays.play.current.entities.kid.pos.x) - 1100) < 2);
+    });
     await check('lost pointer capture restores the uncommitted scene', async () => {
       const before = await page.evaluate(() => JSON.stringify(window.littleDays.play.current));
       const {start, end} = await geometry('kid', {x:1000, y:900});

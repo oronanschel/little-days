@@ -107,8 +107,24 @@ export function seatAtPointer(world: World, draggedId: string, pointer: Point, o
 
 /** Rebuild targets at release, then commit exactly one validated world operation. */
 export function applyDrop(world: World, draggedId: string, position: Point, options: WorldDropOptions = {}): OpResult {
-  const result = resolveDrop(position, buildDropTargets(world, draggedId, options), options.floor ?? DEFAULT_FLOOR);
-  if (result.kind === 'place') return moveTo(world, draggedId, result.position);
+  const floor = options.floor ?? DEFAULT_FLOOR;
+  const result = resolveDrop(position, buildDropTargets(world, draggedId, options), floor);
+  if (result.kind === 'place') {
+    const safe = { ...result.position };
+    // A wallpaper release is clamped onto the floor. If that floor point lies
+    // behind the sofa, bring it forward instead of hiding the person or prop.
+    for (const entity of Object.values(world.entities)) {
+      if (entity.id === draggedId || !typeDef(entity.type).seats?.length) continue;
+      const bounds = options.seatBounds?.[entity.type] ?? DEFAULT_SEAT_BOUNDS[entity.type];
+      if (!bounds) continue;
+      const base = worldPosition(world, entity.id);
+      if (safe.x >= base.x + bounds.x - 24 && safe.x <= base.x + bounds.x + bounds.width + 24
+        && safe.y < base.y + 40) {
+        safe.y = Math.min(floor.y + floor.height, base.y + 80);
+      }
+    }
+    return moveTo(world, draggedId, safe);
+  }
   const target = result.target;
   switch (target.kind) {
     case 'seat': {
