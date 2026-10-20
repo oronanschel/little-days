@@ -69,6 +69,8 @@ export const BOAT_TARGETS = {
 export const HOME = { x: 110, y: 110, r: 80 };
 const HOME_MIN_RADIUS_PX = 48; // about a 4-year-old's fingertip, generously
 const HOME_MARGIN_PX = 20;
+/** Radius of the circle in the HOME_BUBBLE art (plus half its outline). */
+const HOME_ART_R = 61;
 const WHALE_HIT_R = 120;
 
 const svg = (src: string) => new Graphics().svg(src);
@@ -246,7 +248,8 @@ export class BoatPlay extends Container {
     this.boatProps.position.set(a.x, a.y);
     this.boatProps.rotation = tilt;
     this.home.position.set(this.homeAt.x, this.homeAt.y);
-    this.home.scale.set((this.homeR / HOME.r) * (1 + 0.04 * this.motion * Math.sin(this.t * 2)));
+    // Draw the bubble as big as its tap area (the art's circle has radius HOME_ART_R).
+    this.home.scale.set((this.homeR / HOME_ART_R) * (1 + 0.04 * this.motion * Math.sin(this.t * 2)));
 
     // Fish.
     const f = fishFrame(this.t - this.fishAt, this.motion);
