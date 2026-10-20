@@ -50,6 +50,8 @@ saves; this is a browser maintenance action, not a child-facing game control.
 ## Browser checks
 
 The browser test tools require Node.js 20 or later.
+The `Game checks` GitHub Actions workflow runs the build, any available unit-test
+script, and this browser suite for pull requests and updates to `main`.
 
 ```sh
 npx playwright install chromium
