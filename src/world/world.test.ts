@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BACKUP_KEY,
+  MIGRATIONS,
   SAVE_KEY,
   applyAction,
   availableActions,
@@ -179,6 +180,41 @@ describe('persistence', () => {
     expect(deserialize(serialize(bad))).toBeNull();
     expect(save(memoryStore(), bad)).toBe(false);
     expect(deserialize(JSON.stringify({ ...w, version: 99 }))).toBeNull();
+  });
+
+  it('falls back to the backup for well-formed JSON with a malformed shape', () => {
+    const w = createLivingRoom();
+    const malformed = [
+      { ...w, entities: { kid: null } },
+      { ...w, entities: null },
+      { ...w, entities: { ...w.entities, sofa: { ...w.entities.sofa, state: undefined } } },
+      { ...w, entities: { ...w.entities, kid: { ...w.entities.kid, attachment: { kind: 'seated', on: 'sofa' } } } },
+      { ...w, entities: { ...w.entities, snack: { ...w.entities.snack, attachment: { kind: 'resting', on: 'sofa' } } } },
+      { ...w, entities: { ...w.entities, kid: { ...w.entities.kid, type: 'dragon' } } },
+      { ...w, scene: 'moon' },
+      { ...w, transformation: 'sofa-boat' },
+      [],
+      null,
+    ];
+    for (const bad of malformed) {
+      expect(() => validate(bad as unknown as World)).not.toThrow();
+      expect(deserialize(JSON.stringify(bad))).toBeNull();
+      const store = memoryStore();
+      store.data.set(SAVE_KEY, JSON.stringify(bad));
+      store.data.set(BACKUP_KEY, serialize(must(sit(w, 'kid', 'sofa'))));
+      expect(load(store).entities.kid.attachment).toEqual({ kind: 'seated', on: 'sofa', slot: 0 });
+    }
+  });
+
+  it('survives a throwing migration', () => {
+    MIGRATIONS[0] = () => {
+      throw new Error('boom');
+    };
+    try {
+      expect(deserialize(JSON.stringify({ ...createLivingRoom(), version: 0 }))).toBeNull();
+    } finally {
+      delete MIGRATIONS[0];
+    }
   });
 });
 
