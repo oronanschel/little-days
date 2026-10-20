@@ -11,15 +11,25 @@ const textures = new Map<string, Texture>();
 /** Stay under the smallest common GPU texture limit, even for the 2000-wide backdrops. */
 const MAX_TEXTURE_SIZE = 4096;
 
+/**
+ * Resolutions are snapped to quarter steps (exact in floating point), and canvas sizes are
+ * rounded, so Pixi's derived pixel size is a whole number. A fractional product (e.g.
+ * 680 × 1.35 → 918.99) made some textures upload blank: no boat hull at 1920×1080.
+ */
+function snapResolution(wanted: number, art: ArtPiece): number {
+  const cap = MAX_TEXTURE_SIZE / Math.max(art.width, art.height);
+  return Math.max(0.5, Math.floor(Math.min(Math.max(wanted, 0.5), cap) * 4) / 4);
+}
+
 async function rasterise(art: ArtPiece, wanted: number): Promise<Texture> {
-  const resolution = Math.min(wanted, MAX_TEXTURE_SIZE / Math.max(art.width, art.height));
+  const resolution = snapResolution(wanted, art);
   const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(art.svg)}`;
   const img = new Image();
   img.src = url;
   await img.decode();
   const canvas = document.createElement('canvas');
-  canvas.width = Math.ceil(art.width * resolution);
-  canvas.height = Math.ceil(art.height * resolution);
+  canvas.width = Math.round(art.width * resolution);
+  canvas.height = Math.round(art.height * resolution);
   const ctx = canvas.getContext('2d')!;
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   return new Texture({ source: new CanvasSource({ resource: canvas, resolution }) });
