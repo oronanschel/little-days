@@ -201,3 +201,20 @@ export const ripple: ArtPiece = piece(
   100,
   20,
 );
+
+/** A swim ring: at sea, props left out in the water bob in one instead of standing in the waves. */
+export const floatRing: ArtPiece = piece(
+  'float-ring',
+  200,
+  64,
+  `
+  <ellipse cx="100" cy="34" rx="96" ry="26" fill="#ffffff" ${OUTLINE}/>
+  <path d="M4 34 A96 26 0 0 1 40 13 L52 24 A64 14 0 0 0 36 34 Z" fill="#e85d5d"/>
+  <path d="M160 13 A96 26 0 0 1 196 34 L164 34 A64 14 0 0 0 148 24 Z" fill="#e85d5d"/>
+  <path d="M60 58 A96 26 0 0 0 140 58 L130 46 A64 14 0 0 1 70 46 Z" fill="#e85d5d"/>
+  <ellipse cx="100" cy="34" rx="64" ry="13" fill="#3fa3c9"/>
+  <path d="M30 22 Q100 8 170 22" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.6" stroke-linecap="round"/>
+`,
+  100,
+  40,
+);
