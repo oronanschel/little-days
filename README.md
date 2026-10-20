@@ -50,3 +50,7 @@ npm run dev
 
 Start from the [immediate next steps](docs/game-plan.md#14-immediate-next-steps) in the
 plan. Keep scope to the vertical slice until it passes its playtest gate.
+
+For an adult-facilitated session, use the [playtest guide](docs/playtest-guide.md)
+and [blank observation sheet](docs/playtest-observation.md). The protocol is proposed;
+child testing results have not yet been established.
