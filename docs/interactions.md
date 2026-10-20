@@ -44,6 +44,28 @@ The floor bounds describe allowed anchor positions, so account for sprite size
 when defining them. Free placement, seat, carry and container operations should
 all preserve entity identity. Save only after the successful world operation.
 
+## Living room and boat adapter
+
+`buildDropTargets(world, draggedId, options?)` builds compatible seat, hand, head
+and furniture-surface targets from the world catalog. It excludes other people's
+occupied seats/hands/heads while preserving the dragged entity's own attachment
+as a valid target. Surfaces can hold several props. Containers are reserved for
+future content; the current world core has furniture surfaces instead.
+
+`applyDrop(world, draggedId, previewPosition, options?)` rebuilds those targets at
+release and applies one world operation. It returns the world's `OpResult`:
+replace the current world and save only when `ok` is true. On refusal, redraw the
+unchanged world. The renderer can call the builder during a drag to highlight the
+same target that release will choose.
+
+Seat, hand and head positions follow the catalog and current attachment chain.
+The adapter exports provisional `DEFAULT_SURFACES` and `DEFAULT_FLOOR` matching
+the slice's 1600×1000 layout. `options.surfaceBounds` overrides local rectangles
+by furniture type; `options.floor` overrides legal free anchor bounds, and
+`options.padding` tunes touch tolerance. Set the surface rectangles to match the
+art. A tolerance drop is clamped onto the actual surface before attaching a prop,
+so it does not float off the edge. The same data and rules apply at sea.
+
 `toScenePoint` supports a browser client rectangle and the corresponding logical
 scene rectangle. Pass the actual rendered scene rectangle, excluding letterbox
 bars, or use the Pixi container's inverse world transform. Never convert a point

@@ -2,7 +2,7 @@ import { clampPoint, distanceToRect, type Point, type Rect } from './geometry';
 
 export interface DropTarget {
   id: string;
-  kind: 'seat' | 'hand' | 'container';
+  kind: 'seat' | 'hand' | 'head' | 'surface' | 'container';
   bounds: Rect;
   /** World units beyond the visible target; include at least a finger's width. */
   padding?: number;
@@ -12,12 +12,12 @@ export interface DropTarget {
   priority?: number;
 }
 
-export type DropResult =
-  | { kind: 'target'; target: DropTarget }
+export type DropResult<T extends DropTarget = DropTarget> =
+  | { kind: 'target'; target: T }
   | { kind: 'place'; position: Point };
 
 /** Resolve at the released entity anchor, so grabbing an edge never causes a jump. */
-export function resolveDrop(position: Point, targets: readonly DropTarget[], floor: Rect): DropResult {
+export function resolveDrop<T extends DropTarget>(position: Point, targets: readonly T[], floor: Rect): DropResult<T> {
   const candidates = targets
     .filter(target => target.enabled !== false)
     .map(target => ({ target, distance: distanceToRect(position, target.bounds) }))
