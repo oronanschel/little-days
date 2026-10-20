@@ -118,9 +118,20 @@ export const boatHull: ArtPiece = piece(
   SW + 120,
   SH + 40,
   `
-  <path d="M0 196 L680 196 Q650 300 560 330 L120 330 Q30 300 0 196 Z" fill="#c9784a" ${OUTLINE}/>
+  <defs>
+    <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d98a55"/><stop offset="0.55" stop-color="#c06a3c"/><stop offset="1" stop-color="#97502b"/>
+    </linearGradient>
+    <linearGradient id="hullside" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2a1a14" stop-opacity="0.18"/><stop offset="0.15" stop-color="#2a1a14" stop-opacity="0"/>
+      <stop offset="0.85" stop-color="#2a1a14" stop-opacity="0"/><stop offset="1" stop-color="#2a1a14" stop-opacity="0.22"/>
+    </linearGradient>
+  </defs>
+  <path d="M0 196 L680 196 Q650 300 560 330 L120 330 Q30 300 0 196 Z" fill="url(#hull)" ${OUTLINE}/>
+  <path d="M0 196 L680 196 Q650 300 560 330 L120 330 Q30 300 0 196 Z" fill="url(#hullside)"/>
   <path d="M8 214 L672 214" stroke="#a85e36" stroke-width="10"/>
-  <path d="M40 262 L640 262" stroke="#a85e36" stroke-width="6" opacity="0.6"/>
+  <path d="M14 238 Q340 246 666 238 M30 262 Q340 272 650 262 M60 288 Q340 298 620 288" stroke="#8a4a26" stroke-width="3" fill="none" opacity="0.45"/>
+  <path d="M30 222 L650 222" stroke="#f2b07e" stroke-width="3" opacity="0.6"/>
   <rect x="-2" y="188" width="684" height="20" rx="10" fill="#e8a36f" ${OUTLINE}/>
   <circle cx="160" cy="268" r="20" fill="#d6effa" stroke="#e8a36f" stroke-width="7"/>
   <circle cx="520" cy="268" r="20" fill="#d6effa" stroke="#e8a36f" stroke-width="7"/>
