@@ -143,12 +143,17 @@ function legs(s: Spec, g: ReturnType<typeof geometry>, pose: Pose): string {
       out.push(`<path d="M${x} ${g.hipY - 6} L${x} ${g.height - 12}" stroke="${s.trousers}" stroke-width="${w}" stroke-linecap="round"/>`);
       out.push(`<ellipse cx="${x + 6}" cy="${g.height - 10}" rx="${w * 0.75}" ry="${w * 0.42}" fill="${s.shoes}" ${OUTLINE}/>`);
     } else {
-      // Seated: thighs come toward the viewer (short), shins hang over the seat edge.
-      const knee = g.hipY + s.legLen * 0.32;
-      const foot = g.hipY + s.legLen * 0.8;
-      out.push(`<path d="M${x} ${g.hipY - 6} L${x} ${knee}" stroke="${s.trousers}" stroke-width="${w + 6}" stroke-linecap="round"/>`);
-      out.push(`<path d="M${x} ${knee} L${x} ${foot}" stroke="${s.trousers}" stroke-width="${w}" stroke-linecap="round"/>`);
-      out.push(`<ellipse cx="${x + 4}" cy="${foot + 4}" rx="${w * 0.72}" ry="${w * 0.4}" fill="${s.shoes}" ${OUTLINE}/>`);
+      // Seated: knees come toward the viewer and the shins hang short over the seat edge, so
+      // the pose reads as sitting (#23), not standing in front of the sofa.
+      const knee = g.hipY + s.legLen * 0.2;
+      const foot = g.hipY + s.legLen * 0.55;
+      const kx = x + (dx < 0 ? -6 : 6);
+      out.push(`<path d="M${kx} ${knee} L${kx} ${foot}" stroke="${s.trousers}" stroke-width="${w - 2}" stroke-linecap="round"/>`);
+      out.push(`<path d="M${kx} ${knee} L${kx} ${foot}" stroke="#2a1a14" stroke-width="${w - 2}" stroke-linecap="round" opacity="0.18"/>`);
+      out.push(`<ellipse cx="${kx + 3}" cy="${foot + 3}" rx="${w * 0.66}" ry="${w * 0.36}" fill="${s.shoes}" ${OUTLINE}/>`);
+      // Foreshortened thigh and round knee, lit from above.
+      out.push(`<ellipse cx="${kx}" cy="${knee - 4}" rx="${w * 0.78}" ry="${w * 0.62}" fill="${s.trousers}" ${OUTLINE}/>`);
+      out.push(`<ellipse cx="${kx - 3}" cy="${knee - 9}" rx="${w * 0.4}" ry="${w * 0.22}" fill="#ffffff" opacity="0.22"/>`);
     }
   }
   return out.join('');
