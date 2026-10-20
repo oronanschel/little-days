@@ -65,7 +65,10 @@ export const BOAT_TARGETS = {
   rod: { x: -390, y: -235, r: 100 }, // toward the tip, above a grown-up standing nearby
   waterY: 40,
 };
+/** Home bubble: default spot (world units) and its on-screen size limits. */
 export const HOME = { x: 110, y: 110, r: 80 };
+const HOME_MIN_RADIUS_PX = 48; // about a 4-year-old's fingertip, generously
+const HOME_MARGIN_PX = 20;
 const WHALE_HIT_R = 120;
 
 const svg = (src: string) => new Graphics().svg(src);
@@ -88,6 +91,8 @@ export class BoatPlay extends Container {
   private readonly whale = svg(WHALE);
   private readonly drops: Graphics[] = [];
 
+  private homeAt: Vec2 = { x: HOME.x, y: HOME.y };
+  private homeR = HOME.r;
   private rockAt = -Infinity;
   private rockAmp = 0;
   private sailRaised = false;
@@ -120,6 +125,16 @@ export class BoatPlay extends Container {
     this.sailFrom = this.sailRaised ? 1 : 0;
   }
 
+  /**
+   * Pin the home bubble to the top-left of what is on screen (world rect), never
+   * smaller than a fingertip. `pxPerUnit` is the current zoom.
+   */
+  setScreenFrame(visible: { x: number; y: number }, pxPerUnit: number): void {
+    this.homeR = Math.max(HOME.r, HOME_MIN_RADIUS_PX / pxPerUnit);
+    const margin = HOME_MARGIN_PX / pxPerUnit;
+    this.homeAt = { x: visible.x + margin + this.homeR, y: visible.y + margin + this.homeR };
+  }
+
   private get atSea(): boolean {
     return this.host.world().transformation?.def === 'sofa-boat';
   }
@@ -145,7 +160,7 @@ export class BoatPlay extends Container {
       }
       return false;
     }
-    if (dist(p, HOME) <= HOME.r) {
+    if (dist(p, this.homeAt) <= this.homeR) {
       this.host.apply(revert);
       return true;
     }
@@ -230,13 +245,14 @@ export class BoatPlay extends Container {
     this.host.setBoatTilt?.(tilt);
     this.boatProps.position.set(a.x, a.y);
     this.boatProps.rotation = tilt;
-    this.home.scale.set(1 + 0.04 * this.motion * Math.sin(this.t * 2));
+    this.home.position.set(this.homeAt.x, this.homeAt.y);
+    this.home.scale.set((this.homeR / HOME.r) * (1 + 0.04 * this.motion * Math.sin(this.t * 2)));
 
     // Fish.
     const f = fishFrame(this.t - this.fishAt, this.motion);
     const side = BOAT_TARGETS.rodSide;
     const tip = { x: BOAT_TARGETS.rodButt.x + side * ROD_TIP.x, y: BOAT_TARGETS.rodButt.y + ROD_TIP.y };
-    const bobAt = { x: tip.x + side * (40 + 120 * f.line), y: BOAT_TARGETS.waterY + f.bobY };
+    const bobAt = { x: tip.x + side * (30 + 80 * f.line), y: BOAT_TARGETS.waterY + f.bobY };
     this.line.clear();
     if (f.phase !== 'done') {
       this.line
@@ -248,14 +264,15 @@ export class BoatPlay extends Container {
     this.bob.position.set(bobAt.x, bobAt.y);
     this.fish.visible = f.fish !== null;
     if (f.fish) {
-      this.fish.position.set(bobAt.x + side * f.fish.x, bobAt.y + f.fish.y);
-      this.fish.scale.x = side;
-      this.fish.rotation = side * f.fish.rotation;
+      // The fish leaps back toward the boat, so it stays in the always-visible area.
+      this.fish.position.set(bobAt.x - side * f.fish.x, bobAt.y + f.fish.y);
+      this.fish.scale.x = -side;
+      this.fish.rotation = -side * f.fish.rotation;
       if (f.fish.y < -60) this.expressAll('surprised');
     }
     if (f.splash > 0) {
       this.splash
-        .ellipse(bobAt.x + side * 90, bobAt.y, 20 + 60 * f.splash, 6 + 14 * f.splash)
+        .ellipse(bobAt.x - side * 90, bobAt.y, 20 + 60 * f.splash, 6 + 14 * f.splash)
         .stroke({ width: 4, color: '#ffffff', alpha: 1 - f.splash });
       if (f.splash > 0.9) this.expressAll('happy');
     }

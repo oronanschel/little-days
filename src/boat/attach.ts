@@ -53,7 +53,10 @@ export function attachBoat(app: Application, renderer: SceneRenderer, play: Play
   const boat = new BoatPlay(host);
   renderer.backdrop.addChild(boat.behind); // whale on the horizon, behind everything on deck
   renderer.fx.addChild(boat);
-  app.ticker.add((t) => boat.update(t.deltaMS / 1000));
+  app.ticker.add((t) => {
+    boat.setScreenFrame(renderer.visibleWorldRect(), renderer.stage.scale.x);
+    boat.update(t.deltaMS / 1000);
+  });
 
   // Where the current touch started, in world units. Captured before Pixi's own
   // listeners so entity taps (which only report an id) can be placed precisely.
