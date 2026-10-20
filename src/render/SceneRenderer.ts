@@ -1,6 +1,6 @@
 import { Application, Container, Graphics, Rectangle, TilingSprite, type FederatedPointerEvent, type PointData } from 'pixi.js';
 import { characterParts, LOOKS, type Expression } from '../art/characters';
-import { BACKDROP_WIDTH, FLOOR_COLOR, livingRoom, sea, SEA_COLOR, seaShore, seaWater, SHORE_Y, SKY_COLOR, WALL_COLOR } from '../art/backdrops';
+import { BACKDROP_WIDTH, FLOOR_COLOR, HOUSE_SHELL_BOTTOM, HOUSE_SHELL_TOP, livingRoom, sea, SEA_COLOR, seaShore, seaWater, SHORE_Y, SKY_COLOR, WALL_COLOR } from '../art/backdrops';
 import * as props from '../art/props';
 import type { ArtPiece } from '../art/svg';
 import { worldPosition, type Entity, type EntityId, type World, type WorldEvent } from '../world';
@@ -73,7 +73,11 @@ export class SceneRenderer {
 
   private constructor(readonly app: Application) {
     this.entities.sortableChildren = true;
-    this.livingLayer.addChild(fill(WALL_COLOR, FLOOR_COLOR), artSprite(livingRoom));
+    this.livingLayer.addChild(
+      fill(WALL_COLOR, FLOOR_COLOR),
+      new Graphics().rect(-4000, -4000, 9600, 4000).fill(HOUSE_SHELL_TOP).rect(-4000, STAGE_HEIGHT - 2, 9600, 4000).fill(HOUSE_SHELL_BOTTOM),
+      artSprite(livingRoom),
+    );
     // The water tiles far beyond the stage so it also fills letterbox margins while scrolling.
     this.water = new TilingSprite({ texture: textureOf(seaWater), width: 9600, height: STAGE_HEIGHT });
     this.water.position.set(-4000, 0);
