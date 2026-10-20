@@ -23,11 +23,17 @@ export interface Frame {
 export const STAGE: Rect = { x: 0, y: 0, width: 1600, height: 1000 };
 
 /**
- * Always visible: the sofa/boat with its mast and rod, the floor band where
- * people stand, and the horizon. The far wall decorations at the sides may be
- * cropped on narrow screens.
+ * Always visible at sea: the boat with its mast, the fishing line and leaping
+ * fish on the left, and most of the whale's swim. Wall or sky decorations at
+ * the sides may be cropped on narrow screens.
  */
-export const CORE: Rect = { x: 200, y: 0, width: 1200, height: 1000 };
+export const CORE: Rect = { x: 150, y: 0, width: 1150, height: 1000 };
+
+/**
+ * Always visible in the living room: the sofa and its invitation sparkle. Every
+ * person and toy is added on top of this, so nothing the child arranged is lost.
+ */
+export const CORE_ROOM: Rect = { x: 500, y: 0, width: 600, height: 1000 };
 
 /** Breathing room around the outermost toy, in world units. */
 export const ENTITY_MARGIN = 40;
@@ -59,10 +65,10 @@ function centre(visible: number, mustLo: number, mustHi: number, stageLo: number
 
 /**
  * Frame the world for a `width`×`height` screen. `content` is the world-space
- * bounds of all entities (or null). Everything in CORE ∪ content is visible.
+ * bounds of all entities (or null). Everything in core ∪ content is visible.
  */
-export function frameFor(width: number, height: number, content: Rect | null): Frame {
-  let must = CORE;
+export function frameFor(width: number, height: number, content: Rect | null, core: Rect = CORE): Frame {
+  let must = core;
   if (content && content.width > 0 && content.height > 0) {
     const padded = {
       x: content.x - ENTITY_MARGIN,
@@ -70,7 +76,7 @@ export function frameFor(width: number, height: number, content: Rect | null): F
       width: content.width + 2 * ENTITY_MARGIN,
       height: content.height + 2 * ENTITY_MARGIN,
     };
-    must = union(CORE, clampRect(padded, STAGE));
+    must = union(core, clampRect(padded, STAGE));
   }
   const scale = Math.min(width / must.width, height / must.height);
   const vw = width / scale;

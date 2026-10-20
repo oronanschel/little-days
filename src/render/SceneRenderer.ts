@@ -1,4 +1,4 @@
-import { frameFor, union, visibleRect, ease, type Frame, type Rect } from './layout';
+import { CORE, CORE_ROOM, frameFor, union, visibleRect, ease, type Frame, type Rect } from './layout';
 import { Application, Container, Graphics, Rectangle, TilingSprite, type FederatedPointerEvent, type PointData } from 'pixi.js';
 import { characterParts, LOOKS, type Expression } from '../art/characters';
 import { BACKDROP_WIDTH, FLOOR_COLOR, livingRoom, sea, SEA_COLOR, seaWater, SKY_COLOR, WALL_COLOR } from '../art/backdrops';
@@ -138,7 +138,8 @@ export class SceneRenderer {
 
   private computeFrame(): Frame {
     const { width, height } = this.app.screen;
-    return frameFor(width, height, this.contentBounds());
+    const core = this.world?.scene === 'sea' ? CORE : CORE_ROOM;
+    return frameFor(width, height, this.contentBounds(), core);
   }
 
   /** World bounds of everything standing in the scene (held and worn items ride inside their holder). */
