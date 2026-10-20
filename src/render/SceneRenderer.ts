@@ -76,6 +76,8 @@ export class SceneRenderer {
   /** Current and target camera; the camera eases toward the target after world changes. */
   private camera: Frame | null = null;
   private cameraTarget: Frame | null = null;
+  /** True while a finger is down on something; the camera holds still until release. */
+  private inputActive = false;
 
   private constructor(readonly app: Application) {
     this.entities.sortableChildren = true;
@@ -117,6 +119,15 @@ export class SceneRenderer {
   /** Convert a screen (global) point to world units. */
   toWorld(global: PointData): PointData {
     return this.stage.toLocal(global);
+  }
+
+  /**
+   * Tell the camera a touch gesture has started (true) or ended (false). While
+   * active the camera holds still, so whatever is under the finger stays there;
+   * any pending reframe eases in after release.
+   */
+  setInputActive(active: boolean): void {
+    this.inputActive = active;
   }
 
   /** The part of the world currently on screen, in world units (e.g. to place screen-corner buttons). */
@@ -427,7 +438,7 @@ export class SceneRenderer {
     // Hold still while a toy is under the finger, so it doesn't slide away from it.
     const cam = this.camera;
     const goal = this.cameraTarget;
-    if (cam && goal && cam !== goal && !this.drag) {
+    if (cam && goal && cam !== goal && !this.drag && !this.inputActive) {
       const close = Math.abs(cam.scale - goal.scale) < 1e-4 && Math.abs(cam.x - goal.x) < 0.5 && Math.abs(cam.y - goal.y) < 0.5;
       this.camera = close ? goal : ease(cam, goal, 1 - Math.exp(-dt / CAMERA_EASE_MS));
       this.applyCamera();
