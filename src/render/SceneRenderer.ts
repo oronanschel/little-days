@@ -1,3 +1,4 @@
+import { frameFor, union, visibleRect, ease, type Frame, type Rect } from './layout';
 import { Application, Container, Graphics, Rectangle, TilingSprite, type FederatedPointerEvent, type PointData } from 'pixi.js';
 import { characterParts, LOOKS, type Expression } from '../art/characters';
 import { BACKDROP_WIDTH, FLOOR_COLOR, livingRoom, sea, SEA_COLOR, seaWater, SKY_COLOR, WALL_COLOR } from '../art/backdrops';
@@ -10,6 +11,8 @@ import { CharacterView, LOOK_OF_TYPE, PropView, SofaView, propArt, type EntityVi
 /** Logical stage size in world units; everything is laid out in this space and letterboxed. */
 export const STAGE_WIDTH = 1600;
 export const STAGE_HEIGHT = 1000;
+/** Camera easing time constant, ms. */
+const CAMERA_EASE_MS = 140;
 /** Where the wall meets the floor (and the horizon sits at sea). */
 const HORIZON_Y = 560;
 
@@ -70,6 +73,9 @@ export class SceneRenderer {
   private drag: { id: EntityId; pos: PointData } | null = null;
   private elapsed = 0;
   private readonly reducedMotion = prefersReducedMotion();
+  /** Current and target camera; the camera eases toward the target after world changes. */
+  private camera: Frame | null = null;
+  private cameraTarget: Frame | null = null;
 
   private constructor(readonly app: Application) {
     this.entities.sortableChildren = true;
@@ -89,23 +95,64 @@ export class SceneRenderer {
   }
 
   static async create(app: Application): Promise<SceneRenderer> {
-    const scale = Math.min(app.screen.width / STAGE_WIDTH, app.screen.height / STAGE_HEIGHT);
+    // Rasterise art for the closest zoom the camera uses on this screen, so a
+    // portrait tablet (which zooms in on the play area) stays crisp.
+    const scale = frameFor(app.screen.width, app.screen.height, null).scale;
     const resolution = Math.min(3, Math.max(1, scale * app.renderer.resolution * 1.25));
     await preload(allArt(), resolution);
     return new SceneRenderer(app);
   }
 
-  /** Fit the 1600×1000 stage inside the screen, centred. */
+  /**
+   * Frame the world for the current screen (see layout.ts): the core play area
+   * and every person and toy stay visible, zoomed to fill the screen. Snaps on
+   * resize; after world changes `reframe` eases there instead.
+   */
   layout(): void {
-    const { width, height } = this.app.screen;
-    const scale = Math.min(width / STAGE_WIDTH, height / STAGE_HEIGHT);
-    this.stage.scale.set(scale);
-    this.stage.position.set((width - STAGE_WIDTH * scale) / 2, (height - STAGE_HEIGHT * scale) / 2);
+    this.cameraTarget = this.computeFrame();
+    this.camera = this.cameraTarget;
+    this.applyCamera();
   }
 
   /** Convert a screen (global) point to world units. */
   toWorld(global: PointData): PointData {
     return this.stage.toLocal(global);
+  }
+
+  /** The part of the world currently on screen, in world units (e.g. to place screen-corner buttons). */
+  visibleWorldRect(): Rect {
+    const { width, height } = this.app.screen;
+    return visibleRect(this.camera ?? this.computeFrame(), width, height);
+  }
+
+  private computeFrame(): Frame {
+    const { width, height } = this.app.screen;
+    return frameFor(width, height, this.contentBounds());
+  }
+
+  /** World bounds of everything standing in the scene (held and worn items ride inside their holder). */
+  private contentBounds(): Rect | null {
+    let r: Rect | null = null;
+    for (const [id, view] of this.views) {
+      if (view.root.parent !== this.entities || this.drag?.id === id) continue;
+      const b = this.boundsOf(id);
+      if (b && b.width > 0 && b.height > 0) r = r ? union(r, b) : { x: b.x, y: b.y, width: b.width, height: b.height };
+    }
+    return r;
+  }
+
+  private reframe(): void {
+    this.cameraTarget = this.computeFrame();
+    if (!this.camera || this.reducedMotion) {
+      this.camera = this.cameraTarget;
+      this.applyCamera();
+    }
+  }
+
+  private applyCamera(): void {
+    if (!this.camera) return;
+    this.stage.scale.set(this.camera.scale);
+    this.stage.position.set(this.camera.x, this.camera.y);
   }
 
   // --- Sync -------------------------------------------------------------------
@@ -130,6 +177,7 @@ export class SceneRenderer {
     for (const ev of events) this.react(world, ev);
     this.applyTilts();
     this.applyDrag();
+    this.reframe();
   }
 
   private createView(e: Entity): void {
@@ -374,6 +422,15 @@ export class SceneRenderer {
     const a = this.seaLayer.alpha;
     this.seaLayer.alpha = a < target ? Math.min(target, a + step) : Math.max(target, a - step);
     if (this.seaSpeed) this.water.tilePosition.x -= (this.seaSpeed * dt) / 1000;
+
+    // Ease the camera toward its framing (e.g. zooming out a little when a toy is put near the edge).
+    const cam = this.camera;
+    const goal = this.cameraTarget;
+    if (cam && goal && cam !== goal) {
+      const close = Math.abs(cam.scale - goal.scale) < 1e-4 && Math.abs(cam.x - goal.x) < 0.5 && Math.abs(cam.y - goal.y) < 0.5;
+      this.camera = close ? goal : ease(cam, goal, 1 - Math.exp(-dt / CAMERA_EASE_MS));
+      this.applyCamera();
+    }
 
     for (const view of this.views.values()) {
       if (!(view instanceof CharacterView)) continue;
