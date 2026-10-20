@@ -1,0 +1,39 @@
+name: Game checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit tests when present
+        run: npm run test --if-present
+      - name: Build production game
+        run: npm run build
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Offline browser checks
+        run: npx playwright test
+      - name: Save failure details
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure-details
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -46,6 +46,9 @@ npm install
 npm run dev
 ```
 
+For production builds, installation, and offline verification, see
+[offline play](docs/offline-play.md).
+
 ## Contributing
 
 Start from the [immediate next steps](docs/game-plan.md#14-immediate-next-steps) in the
