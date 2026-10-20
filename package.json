@@ -9,7 +9,8 @@
     "test:pwa": "npm run build && playwright test",
     "preview": "vite preview",
     "test": "vitest run --dir src",
-    "test:input": "node tests/input/touch-regression.mjs"
+    "test:input": "node tests/input/touch-regression.mjs",
+    "test:offline-scene": "npm run build && node tests/integration/offline-boat.mjs"
   },
   "dependencies": {
     "pixi.js": "^8.6.0"

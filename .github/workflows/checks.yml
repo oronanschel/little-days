@@ -29,11 +29,15 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Offline browser checks
         run: npx playwright test
+      - name: Full-scene offline controls and save recovery
+        run: node tests/integration/offline-boat.mjs
       - name: Save failure details
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: browser-failure-details
-          path: test-results/
+          path: |
+            test-results/
+            diagnostics/offline-scene/
           if-no-files-found: ignore
           retention-days: 7
