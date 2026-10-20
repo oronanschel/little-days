@@ -62,7 +62,7 @@ try {
   await clickWorld(800,700);
   await page.waitForFunction(() => window.testEvents.some(e => e.type==='action'&&e.action==='rock'));
   await page.waitForFunction(() => Math.abs(window.littleDays.renderer.viewOf('sofa').root.rotation)>.005);
-  await clickWorld(1150,510);
+  await clickWorld(410,465);
   await page.waitForFunction(() => window.testEvents.some(e => e.type==='action'&&e.action==='fish'));
   const whale=await page.evaluate(() => {const p=window.littleDays.boat.whale.position; return {x:p.x,y:p.y};});
   await clickWorld(whale.x,whale.y);
