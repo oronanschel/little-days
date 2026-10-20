@@ -98,9 +98,7 @@ export class SceneRenderer {
     // Rasterise art for the closest zoom the camera uses on this screen, so a
     // portrait tablet (which zooms in on the play area) stays crisp.
     const scale = frameFor(app.screen.width, app.screen.height, null).scale;
-    // Rounded up to a half step: some art (the boat hull) failed to show at fractional
-    // resolutions such as 1.35 on a 1920×1080 screen.
-    const resolution = Math.min(3, Math.max(1, Math.ceil(scale * app.renderer.resolution * 1.25 * 2) / 2));
+    const resolution = Math.min(3, Math.max(1, scale * app.renderer.resolution * 1.25));
     await preload(allArt(), resolution);
     return new SceneRenderer(app);
   }
@@ -426,9 +424,10 @@ export class SceneRenderer {
     if (this.seaSpeed) this.water.tilePosition.x -= (this.seaSpeed * dt) / 1000;
 
     // Ease the camera toward its framing (e.g. zooming out a little when a toy is put near the edge).
+    // Hold still while a toy is under the finger, so it doesn't slide away from it.
     const cam = this.camera;
     const goal = this.cameraTarget;
-    if (cam && goal && cam !== goal) {
+    if (cam && goal && cam !== goal && !this.drag) {
       const close = Math.abs(cam.scale - goal.scale) < 1e-4 && Math.abs(cam.x - goal.x) < 0.5 && Math.abs(cam.y - goal.y) < 0.5;
       this.camera = close ? goal : ease(cam, goal, 1 - Math.exp(-dt / CAMERA_EASE_MS));
       this.applyCamera();
