@@ -5,7 +5,8 @@ import { OUTLINE, piece, type ArtPiece } from './svg';
  * the whole width; scenery is drawn in a group shifted by PAD, so x=PAD in the SVG is world x=0.
  */
 const PAD = 400;
-const W = 1600 + PAD * 2;
+export const BACKDROP_WIDTH = 1600 + PAD * 2;
+const W = BACKDROP_WIDTH;
 /** Scenery coordinates below were authored with world x=0 at 200. */
 const DECOR = `translate(${PAD - 200} 0)`;
 const H = 1000;
@@ -133,7 +134,8 @@ export const sea: ArtPiece = piece(
       <stop offset="1" stop-color="#e3f5fb"/>
     </linearGradient>
   </defs>
-  <rect x="0" y="0" width="${W}" height="${H}" fill="url(#sky)"/>
+  <!-- sky stops below the horizon: the scrolling water covers the rest, the sea fill continues below -->
+  <rect x="0" y="0" width="${W}" height="700" fill="url(#sky)"/>
   <g transform="${DECOR}">
   <circle cx="1560" cy="150" r="70" fill="#ffe08a"/>
   <circle cx="1560" cy="150" r="96" fill="#ffe08a" opacity="0.3"/>
@@ -149,6 +151,20 @@ export const sea: ArtPiece = piece(
   <path d="M760 220 q14 -14 28 0 q14 -14 28 0" fill="none" stroke="#6b3f2a" stroke-opacity="0.5" stroke-width="4"/>
   <path d="M860 260 q10 -10 20 0 q10 -10 20 0" fill="none" stroke="#6b3f2a" stroke-opacity="0.5" stroke-width="3"/>
   </g>
+`,
+  PAD,
+  0,
+);
+
+/**
+ * The water on its own, so it can scroll while the sky stays put. Every wave length
+ * divides the width, so the texture tiles seamlessly.
+ */
+export const seaWater: ArtPiece = piece(
+  'backdrop-sea-water',
+  W,
+  H,
+  `
   ${waveRow(470, 10, 160, '#7cc6e2')}
   ${waveRow(540, 14, 200, '#5db3d6')}
   ${waveRow(640, 18, 240, SEA_COLOR)}

@@ -184,8 +184,10 @@ export class SofaView implements EntityView {
   readonly boatFront = new Container();
   private readonly shadow: ShadowedSprite;
   private readonly armrests: Sprite;
+  private readonly sail = new Container();
   private readonly sailRaised: Sprite;
   private readonly sailFurled: Sprite;
+  private isBoat = false;
 
   constructor(readonly id: string) {
     this.extraLayers = [this.front];
@@ -193,37 +195,43 @@ export class SofaView implements EntityView {
     this.boatBack.addChild(artSprite(boatMast));
     this.sailRaised = artSprite(boatSailRaised);
     this.sailFurled = artSprite(boatSailFurled);
-    this.boatBack.addChild(this.sailRaised, this.sailFurled);
+    // The sail unrolls upwards from the boom, so it scales around its foot.
+    this.sail.pivot.set(0, SAIL_FOOT_Y);
+    this.sail.position.set(0, SAIL_FOOT_Y);
+    this.sail.addChild(this.sailRaised);
+    this.boatBack.addChild(this.sail, this.sailFurled);
     this.root.addChild(this.shadow.shadow, this.boatBack, artSprite(sofaBack));
     this.armrests = artSprite(sofaFront);
     this.boatFront.addChild(artSprite(boatHull));
     this.front.addChild(this.armrests, this.boatFront);
     this.root.eventMode = 'static';
     this.root.hitArea = paddedHitArea(sofaBack, 0);
-    this.front.eventMode = 'static';
-    this.front.hitArea = paddedHitArea(sofaBack, 0);
+    // This is visual occlusion only: its transparent middle must not intercept
+    // touches meant for seated characters or props behind the armrests/hull.
+    this.front.eventMode = 'none';
     this.setBoat(false, false);
   }
 
   setBoat(isBoat: boolean, sailUp: boolean): void {
+    this.isBoat = isBoat;
     this.boatBack.visible = isBoat;
     this.boatFront.visible = isBoat;
-    this.sailRaised.visible = isBoat && sailUp;
-    this.sailFurled.visible = isBoat && !sailUp;
     this.shadow.shadow.visible = !isBoat;
+    this.setSailAmount(sailUp ? 1 : 0);
   }
 
-  /**
-   * Show the sail partway raised (0 furled .. 1 full) for the raise/furl animation.
-   * The raised sail unrolls downward from its top edge at SAIL_TOP.
-   */
+  /** How far the sail is raised, 0 (furled) … 1 (full), for animating between states. */
   setSailAmount(amount: number): void {
-    if (!this.boatBack.visible) return;
-    const p = Math.min(1, Math.max(0, amount));
-    this.sailRaised.visible = p > 0.02;
-    this.sailFurled.visible = p < 0.98;
-    this.sailRaised.scale.y = Math.max(0.02, p);
-    this.sailRaised.position.y = SAIL_TOP * (1 - this.sailRaised.scale.y);
+    const a = Math.max(0, Math.min(1, amount));
+    this.sail.visible = this.isBoat && a > 0.02;
+    this.sail.scale.y = a;
+    this.sailFurled.visible = this.isBoat && a < 0.35;
+  }
+
+  /** Lean the sofa/boat around its base (radians); the scene renderer tilts its passengers too. */
+  setTilt(radians: number): void {
+    this.root.rotation = radians;
+    this.front.rotation = radians;
   }
 
   setGround(ground: Ground): void {
@@ -236,10 +244,10 @@ export class SofaView implements EntityView {
   }
 }
 
-/** Top edge of the raised sail, relative to the sofa base (world units). */
-const SAIL_TOP = -570;
-
 // --- Simple props ---------------------------------------------------------------
+
+/** Bottom of the raised sail, relative to the sofa's base (see boatSailRaised). */
+const SAIL_FOOT_Y = -290;
 
 const PROP_ART: Record<string, ArtPiece> = {
   'side-table': sideTable,
