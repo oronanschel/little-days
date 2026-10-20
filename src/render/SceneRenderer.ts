@@ -1,10 +1,10 @@
-import { Application, Container, Graphics, Rectangle, type FederatedPointerEvent, type PointData } from 'pixi.js';
+import { Application, Container, Graphics, Rectangle, TilingSprite, type FederatedPointerEvent, type PointData } from 'pixi.js';
 import { characterParts, LOOKS, type Expression } from '../art/characters';
-import { FLOOR_COLOR, livingRoom, sea, SEA_COLOR, SKY_COLOR, WALL_COLOR } from '../art/backdrops';
+import { BACKDROP_WIDTH, FLOOR_COLOR, livingRoom, sea, SEA_COLOR, seaWater, SKY_COLOR, WALL_COLOR } from '../art/backdrops';
 import * as props from '../art/props';
 import type { ArtPiece } from '../art/svg';
 import { worldPosition, type Entity, type EntityId, type World, type WorldEvent } from '../world';
-import { artSprite, preload } from './textures';
+import { artSprite, preload, textureOf } from './textures';
 import { CharacterView, LOOK_OF_TYPE, PropView, SofaView, propArt, type EntityView, type Ground } from './views';
 
 /** Logical stage size in world units; everything is laid out in this space and letterboxed. */
@@ -18,7 +18,7 @@ const REACTION_MS = 1600;
 const FADE_MS = 450;
 
 function allArt(): ArtPiece[] {
-  const pieces: ArtPiece[] = [livingRoom, sea];
+  const pieces: ArtPiece[] = [livingRoom, sea, seaWater];
   for (const v of Object.values(props)) if (v && typeof v === 'object' && 'svg' in v) pieces.push(v as ArtPiece);
   for (const look of LOOKS) {
     const p = characterParts(look);
@@ -61,6 +61,10 @@ export class SceneRenderer {
   private readonly views = new Map<EntityId, EntityView>();
   private readonly livingLayer = new Container();
   private readonly seaLayer = new Container();
+  private water!: TilingSprite;
+  private seaSpeed = 0;
+  /** Lean per transformation anchor (e.g. the rocking boat), radians. */
+  private readonly tilts = new Map<EntityId, number>();
   private readonly reactions = new Map<EntityId, Reaction>();
   private world: World | null = null;
   private drag: { id: EntityId; pos: PointData } | null = null;
@@ -70,7 +74,11 @@ export class SceneRenderer {
   private constructor(readonly app: Application) {
     this.entities.sortableChildren = true;
     this.livingLayer.addChild(fill(WALL_COLOR, FLOOR_COLOR), artSprite(livingRoom));
-    this.seaLayer.addChild(fill(SKY_COLOR, SEA_COLOR), artSprite(sea));
+    // The water tiles far beyond the stage so it also fills letterbox margins while scrolling.
+    this.water = new TilingSprite({ texture: textureOf(seaWater), width: 9600, height: STAGE_HEIGHT });
+    this.water.position.set(-4000, 0);
+    this.water.tilePosition.x = 4000 - seaWater.anchorX;
+    this.seaLayer.addChild(fill(SKY_COLOR, SEA_COLOR), artSprite(sea), this.water);
     this.seaLayer.alpha = 0;
     this.backdrop.addChild(this.livingLayer, this.seaLayer);
     this.stage.addChild(this.backdrop, this.entities, this.fx);
@@ -120,6 +128,7 @@ export class SceneRenderer {
     for (const e of Object.values(world.entities)) this.place(world, e);
 
     for (const ev of events) this.react(world, ev);
+    this.applyTilts();
     this.applyDrag();
   }
 
@@ -168,6 +177,7 @@ export class SceneRenderer {
         if (view.root.parent !== slot) slot.addChild(view.root);
         view.root.position.set(0, 0);
         view.root.scale.set(1);
+        view.root.rotation = 0;
         return;
       }
     }
@@ -176,6 +186,7 @@ export class SceneRenderer {
     const p = worldPosition(world, e.id);
     view.root.position.set(p.x, p.y);
     view.root.scale.set(1);
+    view.root.rotation = 0;
     const z = this.depthOf(world, e);
     view.root.zIndex = z;
     for (const layer of view.extraLayers) {
@@ -229,6 +240,61 @@ export class SceneRenderer {
     return this.views.get(id);
   }
 
+  // --- Boat motion hooks (presentation only; the world never changes) ---------------
+
+  /**
+   * Lean an anchor (the sofa/boat) around its base, carrying everyone seated or resting
+   * on it. Held and worn items follow their holders automatically.
+   */
+  setAnchorTilt(id: EntityId, radians: number): void {
+    if (radians === 0) this.tilts.delete(id);
+    else this.tilts.set(id, radians);
+    if (this.world) {
+      for (const e of Object.values(this.world.entities)) this.place(this.world, e);
+      this.applyTilts();
+      this.applyDrag();
+    }
+  }
+
+  /** Raise or lower the boat's sail, 0…1, for animating between its saved states. */
+  setSailAmount(anchorId: EntityId, amount: number): void {
+    const view = this.views.get(anchorId);
+    if (view instanceof SofaView) view.setSailAmount(amount);
+  }
+
+  /** How fast the sea drifts past, world units per second (0 = calm). */
+  setSeaSpeed(unitsPerSecond: number): void {
+    this.seaSpeed = this.reducedMotion ? 0 : unitsPerSecond;
+  }
+
+  private applyTilts(): void {
+    const world = this.world;
+    if (!world) return;
+    for (const [anchorId, angle] of this.tilts) {
+      const anchor = this.views.get(anchorId);
+      if (!(anchor instanceof SofaView)) continue;
+      anchor.setTilt(angle);
+      const base = anchor.root.position;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      for (const e of Object.values(world.entities)) {
+        const a = e.attachment;
+        if (!a || !(a.kind === 'seated' || a.kind === 'resting') || a.on !== anchorId) continue;
+        if (this.drag?.id === e.id) continue;
+        const view = this.views.get(e.id);
+        if (!view) continue;
+        const dx = view.root.x - base.x;
+        const dy = view.root.y - base.y;
+        view.root.position.set(base.x + dx * cos - dy * sin, base.y + dx * sin + dy * cos);
+        view.root.rotation = angle;
+      }
+    }
+    // Untilted sofas stand straight again.
+    for (const view of this.views.values()) {
+      if (view instanceof SofaView && !this.tilts.has(view.id)) view.setTilt(0);
+    }
+  }
+
   // --- Dragging -------------------------------------------------------------------
 
   /** Show `id` lifted under the finger at `pos` (world units), or clear with null. Never changes the world. */
@@ -237,6 +303,7 @@ export class SceneRenderer {
     if (this.world) {
       // Re-place everything so a previously dragged entity returns to its world slot.
       for (const e of Object.values(this.world.entities)) this.place(this.world, e);
+      this.applyTilts();
     }
     this.applyDrag();
   }
@@ -306,6 +373,7 @@ export class SceneRenderer {
     const step = this.reducedMotion ? 1 : dt / FADE_MS;
     const a = this.seaLayer.alpha;
     this.seaLayer.alpha = a < target ? Math.min(target, a + step) : Math.max(target, a - step);
+    if (this.seaSpeed) this.water.tilePosition.x -= (this.seaSpeed * dt) / 1000;
 
     for (const view of this.views.values()) {
       if (!(view instanceof CharacterView)) continue;
