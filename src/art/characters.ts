@@ -32,7 +32,7 @@ const SPECS: Record<Look, Spec> = {
     legLen: 112,
     torsoLen: 104,
     torsoW: 86,
-    headR: 46,
+    headR: 54,
     skin: '#e0a97e',
     hair: '#4a2c20',
     shirt: '#5f9fd6',
@@ -46,7 +46,7 @@ const SPECS: Record<Look, Spec> = {
     legLen: 66,
     torsoLen: 66,
     torsoW: 66,
-    headR: 42,
+    headR: 50,
     skin: '#b97a52',
     hair: '#2a1a14',
     shirt: '#f2c45c',
@@ -162,10 +162,18 @@ function torso(s: Spec, g: ReturnType<typeof geometry>): string {
     s.look === 'child'
       ? `<rect x="${x + 4}" y="${y + h * 0.42}" width="${s.torsoW - 8}" height="${h * 0.16}" fill="${s.shirtAccent}"/>`
       : `<path d="M${g.cx - 14} ${y + 2} L${g.cx} ${y + 22} L${g.cx + 14} ${y + 2}" fill="${s.shirtAccent}"/>`;
+  const rx = s.torsoW * 0.36;
   return `
-    <rect x="${x}" y="${y}" width="${s.torsoW}" height="${h}" rx="${s.torsoW * 0.36}" fill="${s.shirt}" ${OUTLINE}/>
+    <defs><linearGradient id="tshade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="0.45" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.7" stop-color="#2a1a14" stop-opacity="0"/><stop offset="1" stop-color="#2a1a14" stop-opacity="0.22"/>
+    </linearGradient></defs>
+    <rect x="${g.cx - 10}" y="${y - 12}" width="20" height="18" fill="${s.skin}"/>
+    <rect x="${g.cx - 10}" y="${y - 12}" width="20" height="8" fill="#2a1a14" opacity="0.15"/>
+    <rect x="${x}" y="${y}" width="${s.torsoW}" height="${h}" rx="${rx}" fill="${s.shirt}" ${OUTLINE}/>
     ${stripe}
-    <rect x="${g.cx - 10}" y="${y - 12}" width="20" height="18" fill="${s.skin}"/>`;
+    <rect x="${x}" y="${y}" width="${s.torsoW}" height="${h}" rx="${rx}" fill="url(#tshade)"/>
+    <path d="M${g.cx - 18} ${y + 2} Q${g.cx} ${y + 16} ${g.cx + 18} ${y + 2}" stroke="#ffffff" stroke-width="4" fill="none" opacity="0.5"/>`;
 }
 
 function head(s: Spec, g: ReturnType<typeof geometry>): string {
@@ -192,8 +200,13 @@ function head(s: Spec, g: ReturnType<typeof geometry>): string {
     ${hairBack}
     <circle cx="${cx - r * 0.98}" cy="${cy + r * 0.08}" r="${r * 0.2}" fill="${s.skin}" ${OUTLINE}/>
     <circle cx="${cx + r * 0.98}" cy="${cy + r * 0.08}" r="${r * 0.2}" fill="${s.skin}" ${OUTLINE}/>
+    <defs><radialGradient id="hshade" cx="0.4" cy="0.35" r="0.75">
+      <stop offset="0.55" stop-color="#2a1a14" stop-opacity="0"/><stop offset="1" stop-color="#2a1a14" stop-opacity="0.18"/>
+    </radialGradient></defs>
     <circle cx="${cx}" cy="${cy}" r="${r}" fill="${s.skin}" ${OUTLINE}/>
-    ${hairFront}`;
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#hshade)"/>
+    ${hairFront}
+    <path d="M${cx - r * 0.55} ${cy - r * 0.78} Q${cx - r * 0.2} ${cy - r * 0.98} ${cx + r * 0.15} ${cy - r * 0.86}" stroke="#ffffff" stroke-width="${r * 0.09}" stroke-linecap="round" fill="none" opacity="0.28"/>`;
 }
 
 function face(s: Spec, g: ReturnType<typeof geometry>, e: Expression): string {
@@ -218,11 +231,16 @@ function face(s: Spec, g: ReturnType<typeof geometry>, e: Expression): string {
     mouth = `<ellipse cx="${cx}" cy="${ey + r * 0.45}" rx="${r * 0.12}" ry="${r * 0.16}" fill="#a8423f" stroke="${ink}" stroke-width="3"/>`;
   } else {
     eyes = [-ex, ex]
-      .map((dx) => `<ellipse cx="${cx + dx}" cy="${ey}" rx="5.5" ry="7" fill="${ink}"/><circle cx="${cx + dx + 1.5}" cy="${ey - 2.5}" r="2" fill="#fff"/>`)
+      .map((dx) => `<ellipse cx="${cx + dx}" cy="${ey}" rx="7" ry="9" fill="${ink}"/><circle cx="${cx + dx + 2}" cy="${ey - 3}" r="2.8" fill="#fff"/><circle cx="${cx + dx - 2}" cy="${ey + 3}" r="1.2" fill="#fff" opacity="0.8"/>`)
       .join('');
     mouth = `<path d="M${cx - r * 0.22} ${ey + r * 0.36} Q${cx} ${ey + r * 0.55} ${cx + r * 0.22} ${ey + r * 0.36}" stroke="${ink}" stroke-width="4" fill="none" stroke-linecap="round"/>`;
   }
-  return cheeks + eyes + mouth;
+  const browY = ey - r * 0.3 - (e === 'surprised' ? 6 : 0);
+  const brows = [-ex, ex]
+    .map((dx) => `<path d="M${cx + dx - 9} ${browY + 2} Q${cx + dx} ${browY - 4} ${cx + dx + 9} ${browY + 2}" stroke="${s.hair}" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.85"/>`)
+    .join('');
+  const nose = `<path d="M${cx - 4} ${ey + r * 0.2} Q${cx} ${ey + r * 0.27} ${cx + 4} ${ey + r * 0.2}" stroke="#2a1a14" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.35"/>`;
+  return cheeks + brows + eyes + nose + mouth;
 }
 
 const cache = new Map<Look, CharacterParts>();
