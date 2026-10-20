@@ -98,7 +98,9 @@ export class SceneRenderer {
     // Rasterise art for the closest zoom the camera uses on this screen, so a
     // portrait tablet (which zooms in on the play area) stays crisp.
     const scale = frameFor(app.screen.width, app.screen.height, null).scale;
-    const resolution = Math.min(3, Math.max(1, scale * app.renderer.resolution * 1.25));
+    // Rounded up to a half step: some art (the boat hull) failed to show at fractional
+    // resolutions such as 1.35 on a 1920×1080 screen.
+    const resolution = Math.min(3, Math.max(1, Math.ceil(scale * app.renderer.resolution * 1.25 * 2) / 2));
     await preload(allArt(), resolution);
     return new SceneRenderer(app);
   }
