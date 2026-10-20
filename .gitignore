@@ -2,3 +2,6 @@ node_modules/
 dist/
 diagnostics/
 .DS_Store
+.work/
+playwright-report/
+test-results/

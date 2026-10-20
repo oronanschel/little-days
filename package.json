@@ -5,14 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "tsc && vite build && node scripts/build-service-worker.mjs",
+    "test:pwa": "npm run build && playwright test",
+    "preview": "vite preview",
+    "test": "vitest run --dir src",
+    "test:input": "node tests/input/touch-regression.mjs",
+    "test:offline-scene": "npm run build && node tests/integration/offline-boat.mjs"
   },
   "dependencies": {
     "pixi.js": "^8.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "typescript": "^5.6.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^3.2.7"
   }
 }
