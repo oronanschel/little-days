@@ -308,3 +308,85 @@ export const seaShore: ArtPiece = piece(
   PAD,
   0,
 );
+
+/**
+ * Tall screens see above and below the room. Instead of empty bands, the dollhouse continues:
+ * an upstairs room under the roof above, and the garden it stands in below.
+ */
+export const houseAbove: ArtPiece = piece(
+  'backdrop-house-above',
+  W,
+  H,
+  `
+  <defs>
+    <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9fd8f2"/><stop offset="1" stop-color="#d9f0fa"/>
+    </linearGradient>
+    <pattern id="tiles" width="80" height="40" patternUnits="userSpaceOnUse">
+      <rect width="80" height="40" fill="#d9734f"/>
+      <path d="M0 40 Q20 20 40 40 Q60 20 80 40" fill="#c4603f"/>
+    </pattern>
+  </defs>
+  <rect x="0" y="0" width="${W}" height="${H}" fill="url(#sky2)"/>
+  <g transform="${DECOR}">
+    <!-- roof -->
+    <path d="M${dx(-120)} 560 L${dx(800)} 40 L${dx(1720)} 560 Z" fill="url(#tiles)" ${OUTLINE}/>
+    <path d="M${dx(-140)} 572 L${dx(800)} 30 L${dx(1740)} 572" stroke="#8f5631" stroke-width="22" fill="none" stroke-linejoin="round"/>
+    <rect x="${dx(1180)}" y="150" width="90" height="200" fill="#c99a6a" ${OUTLINE}/>
+    <!-- upstairs room seen through the cut-away -->
+    <path d="M${dx(60)} 1000 L${dx(60)} 600 L${dx(800)} 200 L${dx(1540)} 600 L${dx(1540)} 1000 Z" fill="#fde9cf"/>
+    <path d="M${dx(60)} 1000 L${dx(60)} 600 L${dx(800)} 200 L${dx(1540)} 600 L${dx(1540)} 1000 Z" fill="#b9713f" opacity="0.08"/>
+    <!-- round attic window -->
+    <circle cx="${dx(800)}" cy="480" r="90" fill="#fff8ee" ${OUTLINE}/>
+    <circle cx="${dx(800)}" cy="480" r="72" fill="#bfe6f7"/>
+    <path d="M${dx(728)} 480 H${dx(872)} M${dx(800)} 408 V552" stroke="#fff8ee" stroke-width="10"/>
+    <!-- a bed and a toy shelf upstairs -->
+    <rect x="${dx(220)}" y="840" width="300" height="90" rx="20" fill="#9fd3c7" ${OUTLINE}/>
+    <rect x="${dx(200)}" y="800" width="40" height="160" rx="12" fill="#c98a55" ${OUTLINE}/>
+    <rect x="${dx(240)}" y="822" width="90" height="44" rx="16" fill="#fff8ee" ${OUTLINE}/>
+    <rect x="${dx(1120)}" y="760" width="220" height="16" rx="6" fill="#c98a55" ${OUTLINE}/>
+    <circle cx="${dx(1170)}" cy="738" r="22" fill="#e85d5d" ${OUTLINE}/>
+    <rect x="${dx(1220)}" y="710" width="36" height="50" rx="6" fill="#f2c45c" ${OUTLINE}/>
+    <path d="M${dx(1290)} 760 l18 -46 18 46 z" fill="#7fb3e0" ${OUTLINE}/>
+    <!-- bunting -->
+    <path d="M${dx(420)} 640 Q${dx(800)} 720 ${dx(1180)} 640" stroke="#8f5631" stroke-width="4" fill="none"/>
+    ${Array.from({ length: 9 }, (_, i) => {
+      const x = 470 + i * 82;
+      const y = 655 + Math.sin((i / 8) * Math.PI) * 52;
+      const c = ['#e85d5d', '#f2c45c', '#79bf6b', '#7fb3e0'][i % 4];
+      return `<path d="M${dx(x - 18)} ${y} L${dx(x + 18)} ${y} L${dx(x)} ${y + 34} Z" fill="${c}"/>`;
+    }).join('')}
+    <!-- upstairs floor boards just above the ceiling beam -->
+    <rect x="${dx(60)}" y="960" width="1480" height="40" fill="#e3a96e"/>
+    <!-- house walls in section -->
+    <rect x="${dx(-60)}" y="560" width="76" height="440" fill="#f6e2c4" ${OUTLINE}/>
+    <rect x="${dx(1584)}" y="560" width="76" height="440" fill="#f6e2c4" ${OUTLINE}/>
+  </g>
+`,
+  PAD,
+  H,
+);
+
+export const gardenBelow: ArtPiece = piece(
+  'backdrop-garden-below',
+  W,
+  H,
+  `
+  <rect x="0" y="0" width="${W}" height="${H}" fill="#8fcf7e"/>
+  <rect x="0" y="0" width="${W}" height="70" fill="#a8703f"/>
+  <rect x="0" y="70" width="${W}" height="30" fill="#79bf6b"/>
+  <g transform="${DECOR}">
+    ${Array.from({ length: 22 }, (_, i) => {
+      const x = (i * 97) % 1900;
+      const y = 160 + ((i * 53) % 700);
+      const c = ['#f2c45c', '#e85d5d', '#fff8ee', '#f6b3a8'][i % 4];
+      return `<g transform="translate(${x} ${y})"><path d="M0 0 v28" stroke="#5f9a52" stroke-width="5"/>
+        <circle cx="-9" cy="-4" r="9" fill="${c}"/><circle cx="9" cy="-4" r="9" fill="${c}"/>
+        <circle cx="0" cy="-12" r="9" fill="${c}"/><circle cx="0" cy="4" r="9" fill="${c}"/><circle cx="0" cy="-4" r="6" fill="#f2c45c"/></g>`;
+    }).join('')}
+    <path d="M${dx(500)} 1000 Q${dx(800)} 300 ${dx(1100)} 1000 Z" fill="#e3c08a" opacity="0.7"/>
+  </g>
+`,
+  PAD,
+  0,
+);
