@@ -206,8 +206,9 @@ export class SofaView implements EntityView {
     this.front.addChild(this.armrests, this.boatFront);
     this.root.eventMode = 'static';
     this.root.hitArea = paddedHitArea(sofaBack, 0);
-    this.front.eventMode = 'static';
-    this.front.hitArea = paddedHitArea(sofaBack, 0);
+    // This is visual occlusion only: its transparent middle must not intercept
+    // touches meant for seated characters or props behind the armrests/hull.
+    this.front.eventMode = 'none';
     this.setBoat(false, false);
   }
 

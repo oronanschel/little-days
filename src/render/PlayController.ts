@@ -22,6 +22,7 @@ const DRAG_THRESHOLD_PX = 10;
 export class PlayController {
   private gesture: DragGesture;
   private world: World;
+  private capturedPointerId: number | null = null;
   /** Called after every committed change, e.g. to save. */
   onChange?: (world: World, events: WorldEvent[]) => void;
   /** Called on a tap (no drag), for authored reactions. */
@@ -43,6 +44,10 @@ export class PlayController {
     stage.on('pointerup', (e) => this.up(e));
     stage.on('pointerupoutside', (e) => this.up(e));
     stage.on('pointercancel', (e) => this.cancel(e.pointerId));
+    // Pixi's event boundary does not map native pointercancel. Listen on the
+    // canvas too, so OS gestures cannot strand a lifted toy or its active pointer.
+    renderer.app.canvas.addEventListener('pointercancel', (e) => this.cancel(e.pointerId));
+    renderer.app.canvas.addEventListener('lostpointercapture', (e) => this.cancel(e.pointerId));
     window.addEventListener('blur', () => this.cancel());
     renderer.app.renderer.on('resize', () => {
       this.cancel();
@@ -81,6 +86,7 @@ export class PlayController {
   }
 
   private down(id: EntityId, e: FederatedPointerEvent): void {
+    if (this.gesture.entityId !== null) return;
     const entity = getEntity(this.world, id);
     if (!entity) return;
     const def = typeDef(entity.type);
@@ -91,7 +97,11 @@ export class PlayController {
       this.onTap?.(id);
       return;
     }
-    this.gesture.begin(e.pointerId, p, id, this.originOf(id));
+    if (this.gesture.begin(e.pointerId, p, id, this.originOf(id))
+      && typeof PointerEvent !== 'undefined' && e.nativeEvent instanceof PointerEvent) {
+      this.renderer.app.canvas.setPointerCapture(e.pointerId);
+      this.capturedPointerId = e.pointerId;
+    }
   }
 
   private move(e: FederatedPointerEvent): void {
@@ -102,6 +112,7 @@ export class PlayController {
   private up(e: FederatedPointerEvent): void {
     const end = this.gesture.end(e.pointerId, this.renderer.toWorld(e.global));
     if (!end) return;
+    this.releasePointer();
     this.renderer.setDragPreview(null);
     if (end.kind === 'tap') {
       this.onTap?.(end.entityId);
@@ -127,6 +138,16 @@ export class PlayController {
   }
 
   private cancel(pointerId?: number): void {
-    if (this.gesture.cancel(pointerId)) this.renderer.setDragPreview(null);
+    if (this.gesture.cancel(pointerId)) {
+      this.releasePointer();
+      this.renderer.setDragPreview(null);
+    }
+  }
+
+  private releasePointer(): void {
+    const id = this.capturedPointerId;
+    this.capturedPointerId = null;
+    const canvas = this.renderer.app.canvas;
+    if (id !== null && canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
   }
 }
