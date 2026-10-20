@@ -87,7 +87,10 @@ export class SceneRenderer {
     shore.position.set(-4000, 0);
     shore.tilePosition.x = 4000 - seaShore.anchorX;
     const sandBelow = new Graphics().rect(-4000, STAGE_HEIGHT - 2, 9600, 4000).fill('#f7e3b8');
-    this.seaLayer.addChild(fill(SKY_COLOR, SEA_COLOR), artSprite(sea), this.water, shore, sandBelow);
+    // The sky art's top pixel row is antialiased; a thin strip of the same colour hides the seam
+    // where it meets the sky fill above the stage (visible on tall screens).
+    const skySeam = new Graphics().rect(-4000, -4, 9600, 8).fill(SKY_COLOR);
+    this.seaLayer.addChild(fill(SKY_COLOR, SEA_COLOR), artSprite(sea), skySeam, this.water, shore, sandBelow);
     this.seaLayer.alpha = 0;
     this.backdrop.addChild(this.livingLayer, this.seaLayer);
     this.stage.addChild(this.backdrop, this.entities, this.fx);
