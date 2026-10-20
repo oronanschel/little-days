@@ -87,9 +87,38 @@ try {
   },room);
   await page.reload(); await ready();
   assert.equal(await page.evaluate(() => JSON.stringify(window.littleDays.play.current)),room);
+  // Fractional initial rasterization formerly produced completely blank SVGs at
+  // this size, even while the scene graph reported the hull/character visible.
+  await page.setViewportSize({width:1920,height:1080});
+  await page.reload(); await ready();
+  await clickWorld(1050,450);
+  await page.waitForFunction(() => window.littleDays.play.current.scene==='sea');
+  const textureCheck=await page.evaluate(() => {
+    const {renderer}=window.littleDays;
+    function hasPixels(canvas){
+      const data=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+      for(let i=3;i<data.length;i+=4)if(data[i]>128)return true;
+      return false;
+    }
+    const hull=renderer.viewOf('sofa').boatFront.children[0].texture.source.resource;
+    let parts=0,blankParts=0;
+    function check(node){
+      if(!node.visible)return;
+      const canvas=node.texture?.source.resource;
+      if(canvas instanceof HTMLCanvasElement){parts++;if(!hasPixels(canvas))blankParts++;}
+      for(const child of node.children??[])check(child);
+    }
+    check(renderer.viewOf('grown-up').root);
+    return {hull:hasPixels(hull),parts,blankParts};
+  });
+  assert.equal(textureCheck.hull,true,'Boat hull must rasterize at a large viewport');
+  assert.ok(textureCheck.parts>=4,'Grown-up must contain visible textured parts');
+  assert.equal(textureCheck.blankParts,0,'Visible grown-up SVG parts must not be blank');
+  await page.screenshot({path:'diagnostics/offline-scene/large-sea.png'});
   assert.deepEqual(errors,[]);
   console.log('PASS: offline sparkle entry, boat reload, real sail/rock/fish/whale taps, reload with raised sail, home return and room reload.');
   console.log('PASS: saved entities and attachments survive home return and backup recovery; no uncaught page errors.');
+  console.log('PASS: large-viewport boat hull and grown-up textures contain visible pixels.');
 } finally {
   await browser.close();
   server.closeAllConnections();

@@ -22,6 +22,9 @@ bridge, then uses real pointer taps for the sparkle, sail, rocking hull, fishing
 rod, whale and home bubble while networking is disabled. It checks exact saved
 world equality on reload and recovery from a malformed primary save. Screenshots
 go to the ignored `diagnostics/offline-scene/` directory.
+It also reloads at 1920×1080 and checks that the boat hull and visible grown-up
+parts contain actual pixels. A visible scene-graph node alone did not catch the
+earlier blank SVG texture bug at fractional rasterization scales.
 
 Seeding isolates offline behavior; it does not validate natural family dragging.
 The input suite and independent exploratory play cover that separately. A green
