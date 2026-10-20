@@ -1,6 +1,6 @@
 import { Application, Container, Graphics, Rectangle, TilingSprite, type FederatedPointerEvent, type PointData } from 'pixi.js';
 import { characterParts, LOOKS, type Expression } from '../art/characters';
-import { BACKDROP_WIDTH, FLOOR_COLOR, livingRoom, sea, SEA_COLOR, seaWater, SKY_COLOR, WALL_COLOR } from '../art/backdrops';
+import { BACKDROP_WIDTH, FLOOR_COLOR, livingRoom, sea, SEA_COLOR, seaShore, seaWater, SHORE_Y, SKY_COLOR, WALL_COLOR } from '../art/backdrops';
 import * as props from '../art/props';
 import type { ArtPiece } from '../art/svg';
 import { worldPosition, type Entity, type EntityId, type World, type WorldEvent } from '../world';
@@ -18,7 +18,7 @@ const REACTION_MS = 1600;
 const FADE_MS = 450;
 
 function allArt(): ArtPiece[] {
-  const pieces: ArtPiece[] = [livingRoom, sea, seaWater];
+  const pieces: ArtPiece[] = [livingRoom, sea, seaWater, seaShore];
   for (const v of Object.values(props)) if (v && typeof v === 'object' && 'svg' in v) pieces.push(v as ArtPiece);
   for (const look of LOOKS) {
     const p = characterParts(look);
@@ -78,7 +78,12 @@ export class SceneRenderer {
     this.water = new TilingSprite({ texture: textureOf(seaWater), width: 9600, height: STAGE_HEIGHT });
     this.water.position.set(-4000, 0);
     this.water.tilePosition.x = 4000 - seaWater.anchorX;
-    this.seaLayer.addChild(fill(SKY_COLOR, SEA_COLOR), artSprite(sea), this.water);
+    // The floor becomes a sandbank at sea, tiled as wide as the water; sand continues below.
+    const shore = new TilingSprite({ texture: textureOf(seaShore), width: 9600, height: STAGE_HEIGHT });
+    shore.position.set(-4000, 0);
+    shore.tilePosition.x = 4000 - seaShore.anchorX;
+    const sandBelow = new Graphics().rect(-4000, STAGE_HEIGHT - 2, 9600, 4000).fill('#f7e3b8');
+    this.seaLayer.addChild(fill(SKY_COLOR, SEA_COLOR), artSprite(sea), this.water, shore, sandBelow);
     this.seaLayer.alpha = 0;
     this.backdrop.addChild(this.livingLayer, this.seaLayer);
     this.stage.addChild(this.backdrop, this.entities, this.fx);
@@ -121,8 +126,6 @@ export class SceneRenderer {
     }
     for (const e of Object.values(world.entities)) if (!this.views.has(e.id)) this.createView(e);
 
-    const ground: Ground = world.scene === 'sea' ? 'sea' : 'floor';
-    for (const view of this.views.values()) view.setGround(ground);
 
     // Attach held/worn items to their holder's hand/head before positioning the rest.
     for (const e of Object.values(world.entities)) this.place(world, e);
@@ -184,6 +187,9 @@ export class SceneRenderer {
 
     if (view.root.parent !== this.entities) this.entities.addChild(view.root);
     const p = worldPosition(world, e.id);
+    // At sea, things on the sandbank cast shadows; things out in the water get ripples.
+    const ground: Ground = world.scene === 'sea' && p.y < SHORE_Y ? 'sea' : 'floor';
+    view.setGround(ground);
     view.root.position.set(p.x, p.y);
     view.root.scale.set(1);
     view.root.rotation = 0;

@@ -172,3 +172,51 @@ export const seaWater: ArtPiece = piece(
   PAD,
   0,
 );
+
+/**
+ * A sandbank in front of the boat. The room's floor becomes this shore at sea, so
+ * people and things the child left on the floor stand on sand instead of in the waves.
+ */
+export const SHORE_Y = 770;
+
+function shoreEdge(y: number, amp: number, len: number): string {
+  let d = `M0 ${y}`;
+  for (let x = 0; x < W; x += len) d += ` Q${x + len / 4} ${y - amp} ${x + len / 2} ${y} T${x + len} ${y}`;
+  return d;
+}
+
+export const seaShore: ArtPiece = piece(
+  'backdrop-sea-shore',
+  W,
+  H,
+  `
+  <defs>
+    <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9c98f"/>
+      <stop offset="0.35" stop-color="#f3d9a4"/>
+      <stop offset="1" stop-color="#f7e3b8"/>
+    </linearGradient>
+  </defs>
+  <path d="${shoreEdge(SHORE_Y - 14, 10, 300)} L${W} ${H} L0 ${H} Z" fill="#ffffff" opacity="0.55"/>
+  <path d="${shoreEdge(SHORE_Y - 4, 9, 300)} L${W} ${H} L0 ${H} Z" fill="#d9b67a"/>
+  <path d="${shoreEdge(SHORE_Y + 8, 8, 300)} L${W} ${H} L0 ${H} Z" fill="url(#sand)"/>
+  <g transform="${DECOR}">
+    <g fill="#e2bd80" opacity="0.7">
+      <ellipse cx="420" cy="900" rx="60" ry="8"/><ellipse cx="1120" cy="950" rx="80" ry="9"/>
+      <ellipse cx="1560" cy="860" rx="50" ry="7"/><ellipse cx="760" cy="975" rx="70" ry="8"/>
+    </g>
+    <!-- starfish and shells -->
+    <path d="M330 820 l8 18 20 2 -15 13 5 20 -18 -11 -18 11 5 -20 -15 -13 20 -2 z" fill="#f2946b" stroke="#c96f4a" stroke-width="2"/>
+    <path d="M1700 930 q20 -26 40 0 z" fill="#fbe7d6" stroke="#d9a98a" stroke-width="2"/>
+    <path d="M1710 930 l10 -20 M1720 930 l0 -24 M1730 930 l-6 -20" stroke="#d9a98a" stroke-width="2"/>
+    <circle cx="980" cy="985" r="7" fill="#fbe7d6" stroke="#d9a98a" stroke-width="2"/>
+    <!-- sea grass tufts on the dunes -->
+    <g stroke="#79bf6b" stroke-width="5" stroke-linecap="round" fill="none">
+      <path d="M150 1000 q-6 -40 -26 -60 M160 1000 q2 -50 10 -70 M172 1000 q10 -36 30 -50"/>
+      <path d="M1880 1000 q-6 -40 -26 -60 M1890 1000 q2 -50 10 -70 M1902 1000 q10 -36 30 -50"/>
+    </g>
+  </g>
+`,
+  PAD,
+  0,
+);
