@@ -1,46 +1,52 @@
-import { Application, Graphics } from 'pixi.js';
+import { Application } from 'pixi.js';
+import { createLivingRoom, load, save } from './world';
+import { PlayController } from './render/PlayController';
+import { SceneRenderer } from './render/SceneRenderer';
+import { CharacterView } from './render/views';
 
-// Placeholder living room: one draggable toy to prove touch drag-and-drop works.
 async function main() {
   const app = new Application();
-  await app.init({ resizeTo: window, background: '#fdf6ec', antialias: true });
+  await app.init({
+    resizeTo: window,
+    background: '#fdf6ec',
+    antialias: true,
+    autoDensity: true,
+    resolution: Math.min(window.devicePixelRatio || 1, 2),
+  });
   document.body.appendChild(app.canvas);
 
-  const floor = new Graphics().rect(0, 0, 1, 1).fill('#e8c9a0');
-  app.stage.addChild(floor);
+  const renderer = await SceneRenderer.create(app);
+  const store = safeStorage();
+  const world = store ? load(store) : createLivingRoom();
+  const play = new PlayController(renderer, world);
 
-  const toy = new Graphics().circle(0, 0, 48).fill('#f2785c');
-  toy.eventMode = 'static';
-  toy.cursor = 'grab';
-  app.stage.addChild(toy);
+  // Save after every change the child makes, so the family is where they left it.
+  play.onChange = (w) => {
+    if (store) save(store, w);
+  };
 
-  function layout() {
-    const { width, height } = app.screen;
-    floor.position.set(0, height * 0.65);
-    floor.scale.set(width, height * 0.35);
-    toy.position.set(width / 2, height * 0.75);
+  // A tap on a character gets a friendly wave: feedback without changing the scene.
+  play.onTap = (id) => {
+    const view = renderer.viewOf(id);
+    if (!(view instanceof CharacterView)) return;
+    const before = view.currentArmPose;
+    view.setArmPose('wave');
+    renderer.showExpression(id, 'happy');
+    setTimeout(() => {
+      if (view.currentArmPose === 'wave') view.setArmPose(before === 'wave' ? 'down' : before);
+    }, 900);
+  };
+
+  // Handy for development and browser checks; not part of the child-facing UI.
+  (window as unknown as { littleDays: unknown }).littleDays = { app, renderer, play };
+}
+
+function safeStorage(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
   }
-  layout();
-  window.addEventListener('resize', layout);
-
-  let dragging = false;
-  toy.on('pointerdown', () => {
-    dragging = true;
-    toy.scale.set(1.1);
-  });
-  app.stage.eventMode = 'static';
-  app.stage.hitArea = app.screen;
-  app.stage.on('pointermove', (e) => {
-    if (dragging) toy.position.copyFrom(e.global);
-  });
-  app.stage.on('pointerup', () => {
-    dragging = false;
-    toy.scale.set(1);
-  });
-  app.stage.on('pointerupoutside', () => {
-    dragging = false;
-    toy.scale.set(1);
-  });
 }
 
 main();
