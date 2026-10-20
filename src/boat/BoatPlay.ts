@@ -58,8 +58,11 @@ export const BOAT_TARGETS = {
   // Mast and sail: the sail spans y -570..-290 to the left of the mast (top at -620).
   mast: { x: -70, y: -440, r: 170 },
   hull: { left: -320, right: 320, top: -170, bottom: 45 },
-  rodButt: { x: 280, y: -120 },
-  rod: { x: 350, y: -190, r: 100 },
+  // The rod leans out over the left (stern) side, which is open sea in the default
+  // room; the side table usually floats to the right. `rodSide` mirrors the cast.
+  rodSide: -1 as 1 | -1,
+  rodButt: { x: -280, y: -120 },
+  rod: { x: -390, y: -235, r: 100 }, // toward the tip, above a grown-up standing nearby
   waterY: 40,
 };
 export const HOME = { x: 110, y: 110, r: 80 };
@@ -101,6 +104,7 @@ export class BoatPlay extends Container {
 
     const rod = svg(ROD);
     rod.position.set(BOAT_TARGETS.rodButt.x, BOAT_TARGETS.rodButt.y);
+    rod.scale.x = BOAT_TARGETS.rodSide;
     this.boatProps.addChild(rod, this.line, this.bob, this.fish, this.splash);
     this.addChild(this.boatProps, this.sparkle, this.home);
     this.behind.addChild(this.whale);
@@ -230,26 +234,28 @@ export class BoatPlay extends Container {
 
     // Fish.
     const f = fishFrame(this.t - this.fishAt, this.motion);
-    const tip = { x: BOAT_TARGETS.rodButt.x + ROD_TIP.x, y: BOAT_TARGETS.rodButt.y + ROD_TIP.y };
-    const bobAt = { x: tip.x + 40 + 120 * f.line, y: BOAT_TARGETS.waterY + f.bobY };
+    const side = BOAT_TARGETS.rodSide;
+    const tip = { x: BOAT_TARGETS.rodButt.x + side * ROD_TIP.x, y: BOAT_TARGETS.rodButt.y + ROD_TIP.y };
+    const bobAt = { x: tip.x + side * (40 + 120 * f.line), y: BOAT_TARGETS.waterY + f.bobY };
     this.line.clear();
     if (f.phase !== 'done') {
       this.line
         .moveTo(tip.x, tip.y)
-        .quadraticCurveTo(tip.x + 60, tip.y + 60, bobAt.x, bobAt.y)
+        .quadraticCurveTo(tip.x + side * 60, tip.y + 60, bobAt.x, bobAt.y)
         .stroke({ width: 3, color: '#3b3350', alpha: 0.8 });
     }
     this.bob.visible = f.phase !== 'done' && f.phase !== 'cast';
     this.bob.position.set(bobAt.x, bobAt.y);
     this.fish.visible = f.fish !== null;
     if (f.fish) {
-      this.fish.position.set(bobAt.x + f.fish.x, bobAt.y + f.fish.y);
-      this.fish.rotation = f.fish.rotation;
+      this.fish.position.set(bobAt.x + side * f.fish.x, bobAt.y + f.fish.y);
+      this.fish.scale.x = side;
+      this.fish.rotation = side * f.fish.rotation;
       if (f.fish.y < -60) this.expressAll('surprised');
     }
     if (f.splash > 0) {
       this.splash
-        .ellipse(bobAt.x + 90, bobAt.y, 20 + 60 * f.splash, 6 + 14 * f.splash)
+        .ellipse(bobAt.x + side * 90, bobAt.y, 20 + 60 * f.splash, 6 + 14 * f.splash)
         .stroke({ width: 4, color: '#ffffff', alpha: 1 - f.splash });
       if (f.splash > 0.9) this.expressAll('happy');
     }

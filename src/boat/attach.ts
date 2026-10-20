@@ -1,16 +1,14 @@
 // Connects BoatPlay to the real scene (#4): layers, ticking, taps and the
-// BoatHost hooks, using only the renderer's public API.
+// BoatHost hooks, using the renderer's public API (including its boat motion hooks).
 
 import type { Application, FederatedPointerEvent, PointData } from 'pixi.js';
-import { getEntity, worldPosition, type EntityId, type World } from '../world';
+import { getEntity, type EntityId, type World } from '../world';
 import type { PlayController } from '../render/PlayController';
 import type { SceneRenderer } from '../render/SceneRenderer';
-import { CharacterView, SofaView } from '../render/views';
+import { CharacterView } from '../render/views';
 import { BoatPlay, type BoatHost } from './BoatPlay';
 
 const EXPRESSION_MS = 900;
-/** zIndex the renderer gives a dragged entity; leave those under the finger alone. */
-const DRAGGED_Z = 100000;
 
 export interface BoatAttachment {
   boat: BoatPlay;
@@ -20,59 +18,20 @@ export interface BoatAttachment {
 
 export function attachBoat(app: Application, renderer: SceneRenderer, play: PlayController): BoatAttachment {
   const anchorId = (w: World) => w.transformation?.anchor ?? 'sofa';
-  const sofaView = () => {
-    const v = renderer.viewOf(anchorId(play.current));
-    return v instanceof SofaView ? v : undefined;
-  };
 
-  let tilted = new Set<EntityId>();
+  let lastTilt = 0;
   const waving = new Set<EntityId>();
 
   const host: BoatHost = {
     world: () => play.current,
     apply: (op) => void play.commit(op(play.current)),
-
-    // Rotate the sofa-boat and everything sitting or resting on it around the hull base.
     setBoatTilt(rad) {
-      const w = play.current;
-      const id = anchorId(w);
-      const sofa = sofaView();
-      if (rad === 0 && tilted.size === 0 && (!sofa || sofa.root.rotation === 0)) return;
-      const a = worldPosition(w, id);
-      const cos = Math.cos(rad);
-      const sin = Math.sin(rad);
-      if (sofa) {
-        sofa.root.rotation = rad;
-        sofa.front.rotation = rad;
-      }
-      const now = new Set<EntityId>();
-      for (const e of Object.values(w.entities)) {
-        const at = e.attachment;
-        if (!at || (at.kind !== 'seated' && at.kind !== 'resting') || at.on !== id) continue;
-        const view = renderer.viewOf(e.id);
-        if (!view || view.root.zIndex >= DRAGGED_Z) continue;
-        const p = worldPosition(w, e.id);
-        const dx = p.x - a.x;
-        const dy = p.y - a.y;
-        const x = a.x + dx * cos - dy * sin;
-        const y = a.y + dx * sin + dy * cos;
-        for (const c of [view.root, ...view.extraLayers]) {
-          c.position.set(x, y);
-          c.rotation = rad;
-        }
-        now.add(e.id);
-      }
-      // Anyone who left the boat mid-rock stands up straight again.
-      for (const gone of tilted) {
-        if (now.has(gone)) continue;
-        const view = renderer.viewOf(gone);
-        if (view) for (const c of [view.root, ...view.extraLayers]) c.rotation = 0;
-      }
-      tilted = rad === 0 ? new Set() : now;
+      if (rad === 0 && lastTilt === 0) return; // re-placing every frame at rest is wasted work
+      lastTilt = rad;
+      renderer.setAnchorTilt(anchorId(play.current), rad);
     },
-
-    setSail: (p) => sofaView()?.setSailAmount(p),
-
+    setSail: (p) => renderer.setSailAmount(anchorId(play.current), p),
+    setSeaSpeed: (v) => renderer.setSeaSpeed(v),
     setWave(id, amount) {
       const view = renderer.viewOf(id);
       if (!(view instanceof CharacterView)) return;
@@ -116,11 +75,10 @@ export function attachBoat(app: Application, renderer: SceneRenderer, play: Play
     return usedThisTouch;
   };
 
-  // Taps on open space (sea, sky, whale, rod, sparkle, home) or on the hull layer.
+  // Taps on open space: sea, sky, whale, rod, sparkle, home. Taps on the sofa
+  // (including its hull) and props arrive through tapEntity instead.
   app.stage.on('pointertap', (e: FederatedPointerEvent) => {
-    const sofa = sofaView();
-    if (e.target !== app.stage && e.target !== sofa?.front) return;
-    tapAt(renderer.toWorld(e.global));
+    if (e.target === app.stage) tapAt(renderer.toWorld(e.global));
   });
 
   return {
