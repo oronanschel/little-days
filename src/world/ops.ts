@@ -261,8 +261,8 @@ export function applyAction(world: World, action: string): OpResult {
     const key = roleKey(world, 'sail');
     return ok(
       edit(world, (w) => {
-        const s = w.entities[t.anchor].state;
-        s[key] = !s[key];
+        const anchor = w.entities[t.anchor];
+        anchor.state = { ...anchor.state, [key]: !anchor.state?.[key] };
       }),
       event,
     );

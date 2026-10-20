@@ -33,14 +33,18 @@ export function deserialize(text: string): World | null {
     return null;
   }
   if (!data || typeof data !== 'object' || typeof data.version !== 'number') return null;
-  while (data.version < WORLD_VERSION) {
-    const step = MIGRATIONS[data.version];
-    if (!step) return null;
-    data = { ...step(data), version: data.version + 1 };
+  try {
+    while (data.version < WORLD_VERSION) {
+      const step = MIGRATIONS[data.version];
+      if (!step) return null;
+      data = { ...step(data), version: data.version + 1 };
+    }
+    if (data.version !== WORLD_VERSION) return null;
+    // validate() checks the full runtime shape before any invariant.
+    return validate(data).length === 0 ? (data as World) : null;
+  } catch {
+    return null; // a throwing migration must not cost the child their backup
   }
-  if (data.version !== WORLD_VERSION || typeof data.entities !== 'object' || !data.entities) return null;
-  const world = data as World;
-  return validate(world).length === 0 ? world : null;
 }
 
 /** Save; the previous good save becomes the backup. Invalid worlds are never written. */
